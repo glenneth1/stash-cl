@@ -1,0 +1,3 @@
+# Local ignore for emacs package
+^\.DS_Store$
+^Thumbs\.db$

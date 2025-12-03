@@ -1,0 +1,50 @@
+# Global ignore patterns for stash-cl
+# This file defines patterns that should be ignored when stashing packages
+# Patterns use standard glob syntax
+
+# Version control
+.git
+.gitignore
+.gitmodules
+.svn
+CVS
+
+# Editor and IDE files
+*~
+*.swp
+*.swo
+.*.swp
+.*.swo
+\#*\#
+.\#*
+*.bak
+.DS_Store
+
+# Build artifacts
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+*.pyc
+*.pyo
+__pycache__
+
+# Documentation that shouldn't be stashed
+README
+README.*
+LICENSE
+COPYING
+INSTALL
+NEWS
+AUTHORS
+ChangeLog
+
+# Package metadata
+*.spec
+*.deb
+*.rpm
+
+# Stash-specific
+.stash-local-ignore
