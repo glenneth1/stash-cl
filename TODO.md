@@ -40,12 +40,15 @@
   - **Time spent**: 2 hours
   - **Result**: All packages work correctly, content preserved
 
-- [ ] **Test ignore patterns** (HIGH)
-  - Test `.stash-global-ignore` functionality
-  - Test `.stash-local-ignore` functionality
-  - Test glob pattern matching
-  - Test nested ignore files
-  - **Estimated**: 2-3 hours
+- [ ] **Test ignore patterns** (HIGH) ⚠️ PARTIALLY IMPLEMENTED
+  - [x] Integrated ignore pattern reading into folding
+  - [x] Added glob-to-regex conversion
+  - [x] Basic patterns work (*.log, *.tmp)
+  - [ ] Complex glob patterns need work (test-*, *-backup, .git*)
+  - [ ] Fix package export for *current-ignore-patterns*
+  - **Status**: Basic functionality works, needs refinement
+  - **Time spent**: 2 hours
+  - **Estimated remaining**: 1-2 hours
 
 - [ ] **Test no-folding mode** (MEDIUM)
   - Verify individual file symlinks created

@@ -309,10 +309,12 @@ Restash complete!
    - All conflict scenarios tested and working
    - Status: Complete (9/9 tests passing)
 
-3. **Ignore Patterns**
-   - `.stash-global-ignore` file created but not tested
-   - `.stash-local-ignore` functionality not tested
-   - Status: Not tested
+3. **Ignore Patterns** ⚠️ PARTIALLY WORKING
+   - Integrated into folding logic
+   - Global and local ignore files read correctly
+   - Basic glob patterns work (*.log, *.tmp)
+   - Complex patterns need refinement (test-*, *-backup)
+   - Status: Basic functionality implemented, needs more work
 
 4. **Multiple Packages** ✅ TESTED
    - All packages work correctly with unfolding

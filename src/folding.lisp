@@ -230,8 +230,11 @@ Used when unfolding to preserve original package content."
              (file-name (file-namestring file-path))
              (target-file (concatenate 'string target-dir "/" file-name))
              (package-file file-path))
-        (stash-cl/task-planner:plan-create-link target-file package-file :check-conflicts nil)
-        (incf (folding-stats-file-symlinks-created *folding-stats*))))
+        ;; Check ignore patterns even when preserving content
+        (unless (and *current-ignore-patterns*
+                     (stash-cl/package-mgmt:should-ignore-p file-name *current-ignore-patterns*))
+          (stash-cl/task-planner:plan-create-link target-file package-file :check-conflicts nil)
+          (incf (folding-stats-file-symlinks-created *folding-stats*)))))
     
     ;; Handle subdirectories - skip conflict checking, just fold
     (dolist (subdir subdirs)
@@ -239,9 +242,12 @@ Used when unfolding to preserve original package content."
              (subdir-name (file-namestring (string-right-trim "/" subdir-path)))
              (target-subdir (concatenate 'string target-dir "/" subdir-name))
              (package-subdir subdir-path))
-        ;; Just fold without conflict checking
-        (stash-cl/task-planner:plan-create-link target-subdir package-subdir :check-conflicts nil)
-        (incf (folding-stats-directories-folded *folding-stats*))))))
+        ;; Check ignore patterns even when preserving content
+        (unless (and *current-ignore-patterns*
+                     (stash-cl/package-mgmt:should-ignore-p subdir-name *current-ignore-patterns*))
+          ;; Just fold without conflict checking
+          (stash-cl/task-planner:plan-create-link target-subdir package-subdir :check-conflicts nil)
+          (incf (folding-stats-directories-folded *folding-stats*)))))))
 
 (defun stash-directory-contents (target-dir package-dir)
   "Stash contents of PACKAGE-DIR into TARGET-DIR.
@@ -277,8 +283,11 @@ This is called during unfolding or when we can't fold."
              (file-name (file-namestring file-path))
              (target-file (concatenate 'string target-dir "/" file-name))
              (package-file file-path))
-        (stash-cl/task-planner:plan-create-link target-file package-file)
-        (incf (folding-stats-file-symlinks-created *folding-stats*))))
+        ;; Check if file should be ignored
+        (unless (and *current-ignore-patterns*
+                     (stash-cl/package-mgmt:should-ignore-p file-name *current-ignore-patterns*))
+          (stash-cl/task-planner:plan-create-link target-file package-file)
+          (incf (folding-stats-file-symlinks-created *folding-stats*)))))
     
     ;; Handle subdirectories
     (dolist (subdir subdirs)
@@ -287,9 +296,12 @@ This is called during unfolding or when we can't fold."
              (target-subdir (concatenate 'string target-dir "/" subdir-name))
              (package-subdir subdir-path))
         
-        ;; Try to fold this subdirectory
-        (if (can-fold-directory-p target-subdir package-subdir)
-            (fold-directory target-subdir package-subdir)
+        ;; Check if directory should be ignored
+        (unless (and *current-ignore-patterns*
+                     (stash-cl/package-mgmt:should-ignore-p subdir-name *current-ignore-patterns*))
+          ;; Try to fold this subdirectory
+          (if (can-fold-directory-p target-subdir package-subdir)
+              (fold-directory target-subdir package-subdir)
             ;; Can't fold, need to descend
             (progn
               ;; If target is a symlink to another package, preserve that package's content
@@ -312,7 +324,7 @@ This is called during unfolding or when we can't fold."
                 (stash-cl/task-planner:plan-create-dir target-subdir))
               
               ;; Stash new package's content
-              (stash-directory-contents target-subdir package-subdir)))))))
+              (stash-directory-contents target-subdir package-subdir))))))))
 
 ;;; Refolding after unstash (ENHANCEMENT)
 
@@ -389,10 +401,17 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
 
 ;;; High-level folding interface
 
+(defparameter *current-ignore-patterns* nil
+  "Ignore patterns for the current package being stashed.")
+
 (defun stash-package-with-folding (package-path target-path)
   "Stash PACKAGE-PATH to TARGET-PATH with intelligent folding."
   
   (reset-folding-stats)
+  
+  ;; Read ignore patterns for this package
+  (setf *current-ignore-patterns* 
+        (stash-cl/package-mgmt:read-ignore-patterns package-path))
   
   (when (>= *folding-verbosity* 1)
     (format t "~%Analyzing package structure for optimal folding...~%"))
