@@ -54,12 +54,15 @@ Returns T if the directory can be folded, NIL otherwise."
   t)
 
 (defun directory-empty-or-owned-p (dir-path)
-  "Check if DIR-PATH is empty or only contains stash-owned symlinks."
-  (let ((entries (uiop:directory-files dir-path)))
-    (or (null entries)
-        (every (lambda (entry) 
-                 (stash-cl/file-ops:file-is-symlink-p (namestring entry))) 
-               entries))))
+  "Check if DIR-PATH is empty.
+For multiple package support, we only fold truly empty directories."
+  (let* ((dir-path-with-slash (if (char= (char dir-path (1- (length dir-path))) #\/)
+                                   dir-path
+                                   (concatenate 'string dir-path "/")))
+         (files (uiop:directory-files dir-path-with-slash))
+         (subdirs (uiop:subdirectories dir-path-with-slash)))
+    ;; Directory must be completely empty (no files, no subdirs)
+    (and (null files) (null subdirs))))
 
 (defun read-symlink (path)
   "Read the target of a symlink at PATH."
@@ -126,20 +129,34 @@ Returns T on success, NIL on failure."
   (when (>= *folding-verbosity* 2)
     (format t "  ✓ Folding ~A -> ~A~%" target-path package-path))
   
-  ;; If target exists and is a directory, we need to remove it first
-  (when (and (probe-file target-path)
-             (stash-cl/file-ops:file-is-directory-p target-path))
-    (unless (directory-empty-or-owned-p target-path)
-      (stash-cl/task-planner:add-conflict 
-       "folding"
-       (format nil "Cannot fold ~A: directory not empty" target-path)
-       target-path)
-      (return-from fold-directory nil))
-    ;; Remove empty directory
-    (stash-cl/task-planner:plan-remove-dir target-path))
+  ;; If target exists, we need to remove it first
+  (when (probe-file target-path)
+    (cond
+      ;; If it's a symlink, just remove the symlink
+      ((stash-cl/file-ops:file-is-symlink-p target-path)
+       (stash-cl/task-planner:plan-remove-link target-path))
+      
+      ;; If it's a real directory, check if it's safe to remove
+      ((stash-cl/file-ops:file-is-directory-p target-path)
+       (unless (directory-empty-or-owned-p target-path)
+         (stash-cl/task-planner:add-conflict 
+          "folding"
+          (format nil "Cannot fold ~A: directory not empty" target-path)
+          target-path)
+         (return-from fold-directory nil))
+       ;; Remove empty directory
+       (stash-cl/task-planner:plan-remove-dir target-path))
+      
+      ;; It's a regular file - can't fold
+      (t
+       (stash-cl/task-planner:add-conflict 
+        "folding"
+        (format nil "Cannot fold ~A: path is a regular file" target-path)
+        target-path)
+       (return-from fold-directory nil))))
   
-  ;; Create symlink
-  (stash-cl/task-planner:plan-create-link target-path package-path)
+  ;; Create symlink (skip conflict checking since we've already validated and planned removal)
+  (stash-cl/task-planner:plan-create-link target-path package-path :check-conflicts nil)
   (incf (folding-stats-directories-folded *folding-stats*))
   t)
 
@@ -151,17 +168,27 @@ Returns T on success, NIL on failure."
   (when (>= *folding-verbosity* 2)
     (format t "  ⚠ Unfolding ~A~%" target-path))
   
-  ;; Remove the directory symlink
-  (when (stash-cl/file-ops:file-is-symlink-p target-path)
-    (stash-cl/task-planner:plan-remove-link target-path))
-  
-  ;; Create actual directory
-  (stash-cl/task-planner:plan-create-dir target-path)
-  
-  ;; Stash contents with smart partial folding (ENHANCEMENT)
-  (if minimal
-      (unfold-contents-minimal target-path package-path)
-      (unfold-contents-full target-path package-path))
+  ;; If target is a symlink, we need to preserve the original package's content
+  (let ((original-package-path nil))
+    (when (stash-cl/file-ops:file-is-symlink-p target-path)
+      ;; Remember what the symlink pointed to
+      (setf original-package-path (read-symlink target-path))
+      ;; Remove the symlink
+      (stash-cl/task-planner:plan-remove-link target-path))
+    
+    ;; Create actual directory
+    (stash-cl/task-planner:plan-create-dir target-path)
+    
+    ;; First, stash the original package's content if there was one
+    (when original-package-path
+      (when (>= *folding-verbosity* 2)
+        (format t "  → Preserving original package content from ~A~%" original-package-path))
+      (stash-directory-contents target-path original-package-path))
+    
+    ;; Then stash the new package's contents with smart partial folding (ENHANCEMENT)
+    (if minimal
+        (unfold-contents-minimal target-path package-path)
+        (unfold-contents-full target-path package-path)))
   
   (incf (folding-stats-directories-unfolded *folding-stats*))
   t)
@@ -190,9 +217,56 @@ Returns T on success, NIL on failure."
   "Unfold contents completely, creating file symlinks."
   (stash-directory-contents target-path package-path))
 
+(defun stash-directory-contents-no-conflicts (target-dir package-dir)
+  "Stash contents of PACKAGE-DIR into TARGET-DIR without conflict checking.
+Used when unfolding to preserve original package content."
+  
+  (let ((files (uiop:directory-files package-dir))
+        (subdirs (uiop:subdirectories package-dir)))
+    
+    ;; Handle files - skip conflict checking
+    (dolist (file files)
+      (let* ((file-path (namestring file))
+             (file-name (file-namestring file-path))
+             (target-file (concatenate 'string target-dir "/" file-name))
+             (package-file file-path))
+        (stash-cl/task-planner:plan-create-link target-file package-file :check-conflicts nil)
+        (incf (folding-stats-file-symlinks-created *folding-stats*))))
+    
+    ;; Handle subdirectories - skip conflict checking, just fold
+    (dolist (subdir subdirs)
+      (let* ((subdir-path (namestring subdir))
+             (subdir-name (file-namestring (string-right-trim "/" subdir-path)))
+             (target-subdir (concatenate 'string target-dir "/" subdir-name))
+             (package-subdir subdir-path))
+        ;; Just fold without conflict checking
+        (stash-cl/task-planner:plan-create-link target-subdir package-subdir :check-conflicts nil)
+        (incf (folding-stats-directories-folded *folding-stats*))))))
+
 (defun stash-directory-contents (target-dir package-dir)
   "Stash contents of PACKAGE-DIR into TARGET-DIR.
 This is called during unfolding or when we can't fold."
+  
+  ;; First check if target directory has any non-stash files (conflicts)
+  ;; Skip this check if target-dir itself is a symlink (we're unfolding it)
+  ;; Symlinks are OK (they're from other stash packages), but regular files are conflicts
+  (when (and (probe-file target-dir)
+             (not (stash-cl/file-ops:file-is-symlink-p target-dir)))
+    (let* ((target-dir-with-slash (if (char= (char target-dir (1- (length target-dir))) #\/)
+                                       target-dir
+                                       (concatenate 'string target-dir "/")))
+           (existing-files (uiop:directory-files target-dir-with-slash)))
+      (dolist (existing-file existing-files)
+        (let ((existing-path (namestring existing-file)))
+          ;; Symlinks are OK (from other packages), regular files are conflicts
+          (when (not (stash-cl/file-ops:file-is-symlink-p existing-path))
+            (stash-cl/task-planner:add-conflict 
+             "stash"
+             (format nil "Regular file already exists at: ~A" existing-path)
+             existing-path)
+            (error 'stash-cl/task-planner:conflict-error
+                   :message (format nil "Regular file already exists at: ~A" existing-path)
+                   :path existing-path))))))
   
   (let ((files (uiop:directory-files package-dir))
         (subdirs (uiop:subdirectories package-dir)))
@@ -218,7 +292,26 @@ This is called during unfolding or when we can't fold."
             (fold-directory target-subdir package-subdir)
             ;; Can't fold, need to descend
             (progn
-              (stash-cl/task-planner:plan-create-dir target-subdir)
+              ;; If target is a symlink to another package, preserve that package's content
+              (when (and (probe-file target-subdir)
+                        (stash-cl/file-ops:file-is-symlink-p target-subdir))
+                (let* ((original-target (read-symlink target-subdir))
+                       ;; Ensure trailing slash for directory operations
+                       (original-target-dir (if (char= (char original-target (1- (length original-target))) #\/)
+                                                original-target
+                                                (concatenate 'string original-target "/"))))
+                  (when (>= *folding-verbosity* 2)
+                    (format t "  → Unfolding and preserving ~A (was -> ~A)~%" target-subdir original-target))
+                  ;; Create directory (this will remove the symlink automatically)
+                  (stash-cl/task-planner:plan-create-dir target-subdir)
+                  ;; Preserve original package's content (skip conflict checking since we're unfolding)
+                  (stash-directory-contents-no-conflicts target-subdir original-target-dir)))
+              
+              ;; If not a symlink, just create directory if needed
+              (unless (probe-file target-subdir)
+                (stash-cl/task-planner:plan-create-dir target-subdir))
+              
+              ;; Stash new package's content
               (stash-directory-contents target-subdir package-subdir)))))))
 
 ;;; Refolding after unstash (ENHANCEMENT)

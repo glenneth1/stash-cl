@@ -310,24 +310,29 @@
     (t
      (format nil "Path already exists (unknown type): ~A" path))))
 
-(defun plan-create-link (path source)
-  "Plan creation of a symlink from PATH to SOURCE. Checks for conflicts first."
-  (let ((conflict (check-path-conflict path source)))
-    (cond
-      ;; Conflict detected - add to conflict list and signal error
-      (conflict
-       (add-conflict "stash" conflict path)
-       (error 'conflict-error :message conflict :path path))
-      
-      ;; Path already exists and points to same source - skip (idempotent)
-      ((and (probe-file path)
-            (stash-cl/file-ops:file-is-symlink-p path))
-       ;; Symlink already correct, nothing to do
-       nil)
-      
-      ;; Path doesn't exist - create it
-      (t
-       (add-task :create :link path :source source)))))
+(defun plan-create-link (path source &key (check-conflicts t))
+  "Plan creation of a symlink from PATH to SOURCE. 
+If CHECK-CONFLICTS is T (default), checks for conflicts first.
+Set CHECK-CONFLICTS to NIL when unfolding to preserve original content."
+  (if check-conflicts
+      (let ((conflict (check-path-conflict path source)))
+        (cond
+          ;; Conflict detected - add to conflict list and signal error
+          (conflict
+           (add-conflict "stash" conflict path)
+           (error 'conflict-error :message conflict :path path))
+          
+          ;; Path already exists and points to same source - skip (idempotent)
+          ((and (probe-file path)
+                (stash-cl/file-ops:file-is-symlink-p path))
+           ;; Symlink already correct, nothing to do
+           nil)
+          
+          ;; Path doesn't exist - create it
+          (t
+           (add-task :create :link path :source source))))
+      ;; No conflict checking - just create the link
+      (add-task :create :link path :source source)))
 
 (defun plan-remove-link (path)
   "Plan removal of a symlink at PATH."
@@ -335,6 +340,10 @@
 
 (defun plan-create-dir (path)
   "Plan creation of a directory at PATH."
+  ;; If a symlink exists at this path, remove it first
+  (when (and (probe-file path)
+             (stash-cl/file-ops:file-is-symlink-p path))
+    (plan-remove-link path))
   (add-task :create :dir path))
 
 (defun plan-remove-dir (path)

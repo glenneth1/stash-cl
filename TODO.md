@@ -32,6 +32,14 @@
   - **Time spent**: 3 hours
   - **Result**: All 9 tests passing
 
+- [x] **Test multiple packages** (HIGH) ✅ COMPLETE
+  - [x] Test stashing 2 packages with overlapping directories
+  - [x] Test stashing 3+ packages
+  - [x] Test unfolding preserves original package content
+  - [x] Verify all packages' files present after unfolding
+  - **Time spent**: 2 hours
+  - **Result**: All packages work correctly, content preserved
+
 - [ ] **Test ignore patterns** (HIGH)
   - Test `.stash-global-ignore` functionality
   - Test `.stash-local-ignore` functionality
@@ -45,12 +53,6 @@
   - Test with complex directory structures
   - **Estimated**: 1-2 hours
 
-- [ ] **Test multiple packages** (MEDIUM)
-  - Stash multiple packages simultaneously
-  - Test package conflicts
-  - Test overlapping packages
-  - **Estimated**: 2 hours
-
 - [ ] **Test deploy mode** (LOW)
   - Deploy all packages in directory
   - Verify selective deployment
@@ -62,8 +64,8 @@
   - Test on multiple SBCL versions
   - **Estimated**: 4-6 hours
 
-**Remaining Time**: 9-14 hours (1-2 weeks part-time)  
-**Progress**: ~50% complete (core operations + conflict handling tested)
+**Remaining Time**: 7-12 hours (1-2 weeks part-time)  
+**Progress**: ~60% complete (core operations + conflict handling + multiple packages tested)
 
 ---
 

@@ -262,6 +262,41 @@ Restash complete!
 
 ---
 
+### Bug #9: Multiple Package Support Issues ✅ FIXED
+
+**Original Issue**: Multiple packages couldn't be stashed together - later packages would overwrite earlier ones
+
+**Root Causes**:
+1. `directory-empty-or-owned-p` allowed folding over existing package content
+2. Unfolding didn't preserve original package's content
+3. Conflict detection was too strict for legitimate multi-package scenarios
+4. Directory removal failed on directories with symlinks
+
+**Fixes**:
+1. Made `directory-empty-or-owned-p` only allow truly empty directories
+2. Implemented content preservation during unfolding:
+   - Read symlink target before removing
+   - Call `stash-directory-contents-no-conflicts` to preserve original content
+   - Add trailing slash to paths for correct directory operations
+3. Added smart conflict detection in `stash-directory-contents`:
+   - Allow symlinks (from other packages)
+   - Reject regular files (conflicts)
+   - Skip check if target directory itself is a symlink (unfolding case)
+4. Changed `delete-directory` to use `rm -rf` instead of UIOP function
+5. Added `:check-conflicts` parameter to `plan-create-link`
+6. Fixed `plan-create-dir` to remove symlinks before creating directory
+7. Fixed `fold-directory` to check if target is symlink before removing as directory
+
+**Verification** (Multiple package tests):
+- ✅ 2 packages (emacs + vim) work correctly
+- ✅ 3 packages (emacs + vim + perl) work correctly
+- ✅ All packages' files present after unfolding
+- ✅ Original content preserved during unfolding
+- ✅ Conflict tests still pass (9/9)
+- ✅ Test 4 updated to reflect correct multi-package behavior
+
+---
+
 ## Features Not Yet Tested
 
 ### ⚠️ Pending Tests
@@ -279,9 +314,9 @@ Restash complete!
    - `.stash-local-ignore` functionality not tested
    - Status: Not tested
 
-4. **Multiple Packages**
-   - Stashing multiple packages simultaneously
-   - Status: Not tested
+4. **Multiple Packages** ✅ TESTED
+   - All packages work correctly with unfolding
+   - Status: Complete (all tests passing)
 
 5. **Deploy Mode**
    - Stash all packages in directory
@@ -317,11 +352,13 @@ Restash complete!
 | Task Planning | ✅ PASS | All operations planned first |
 | Bug #7 Fix | ✅ PASS | Verbosity no longer crashes |
 | Bug #8 Fix | ✅ PASS | Conflict detection working |
+| Bug #9 Fix | ✅ PASS | Multiple packages working |
 | Conflict Handling | ✅ PASS | 9/9 tests passing |
 | Idempotent Operations | ✅ PASS | Re-stash works correctly |
+| Multiple Packages | ✅ PASS | 3 packages work correctly |
+| Package Unfolding | ✅ PASS | Content preserved |
 | No-Folding Mode | ⚠️ PENDING | Not yet tested |
 | Ignore Patterns | ⚠️ PENDING | Not yet tested |
-| Multiple Packages | ⚠️ PENDING | Not yet tested |
 | Deploy Mode | ⚠️ PENDING | Not yet tested |
 
 ---

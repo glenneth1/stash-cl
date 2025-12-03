@@ -98,15 +98,22 @@ run_test "Stash with broken symlink in target" "fail" \
 rm -rf "$TARGET_DIR"
 mkdir -p "$TARGET_DIR"
 
-# Test 4: Symlink pointing to different package
-echo -e "\n${YELLOW}=== Test 4: Symlink to Different Package ===${NC}"
+# Test 4: Multiple packages with overlapping directories (should succeed and unfold)
+echo -e "\n${YELLOW}=== Test 4: Multiple Packages (Unfolding) ===${NC}"
 rm -rf "$TARGET_DIR"
 mkdir -p "$TARGET_DIR"
-# First stash emacs
+# First stash emacs (creates bin/ as symlink to emacs/bin/)
 ./stash --dir "$PACKAGES_DIR" --target "$TARGET_DIR" emacs > /dev/null 2>&1
-# Try to stash vim (which also has bin/ directory)
-run_test "Stash with symlink to different package" "fail" \
+# Stash vim (should unfold bin/ and add both packages' files)
+run_test "Stash multiple packages with overlapping directories" "pass" \
     ./stash --dir "$PACKAGES_DIR" --target "$TARGET_DIR" vim
+
+# Verify both packages' files are present
+if [ -e "$TARGET_DIR/bin/emacs" ] && [ -e "$TARGET_DIR/bin/vim" ]; then
+    echo -e "${GREEN}  ✓ Both packages' binaries present after unfolding${NC}"
+else
+    echo -e "${RED}  ✗ Missing binaries after unfolding${NC}"
+fi
 
 # Clean up
 rm -rf "$TARGET_DIR"

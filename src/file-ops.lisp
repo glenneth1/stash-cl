@@ -40,7 +40,8 @@
 (defun delete-directory (path)
   "Delete directory at PATH."
   (log-action "DELETE-DIR" path)
-  (uiop:delete-directory-tree (pathname path) :validate t))
+  ;; Use rm -rf to handle directories with symlinks
+  (uiop:run-program (list "rm" "-rf" path)))
 
 (defun move-source-to-target (source target)
   "Move SOURCE to TARGET."
