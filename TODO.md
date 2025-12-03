@@ -50,11 +50,13 @@
   - **Time spent**: 2 hours
   - **Estimated remaining**: 1-2 hours
 
-- [ ] **Test no-folding mode** (MEDIUM)
-  - Verify individual file symlinks created
-  - Compare with folding mode behavior
-  - Test with complex directory structures
-  - **Estimated**: 1-2 hours
+- [x] **Test no-folding mode** (MEDIUM) ✅ COMPLETE
+  - [x] Verify individual file symlinks created
+  - [x] Compare with folding mode behavior
+  - [x] Test unstash compatibility
+  - [x] Verify file accessibility in both modes
+  - **Time spent**: 15 minutes
+  - **Result**: All 5 tests passing
 
 - [ ] **Test deploy mode** (LOW)
   - Deploy all packages in directory
@@ -67,8 +69,8 @@
   - Test on multiple SBCL versions
   - **Estimated**: 4-6 hours
 
-**Remaining Time**: 7-12 hours (1-2 weeks part-time)  
-**Progress**: ~60% complete (core operations + conflict handling + multiple packages tested)
+**Remaining Time**: 6-11 hours (1-2 weeks part-time)  
+**Progress**: ~65% complete (core operations + conflict handling + multiple packages + no-folding tested)
 
 ---
 

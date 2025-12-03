@@ -301,9 +301,11 @@ Restash complete!
 
 ### ⚠️ Pending Tests
 
-1. **No-Folding Mode** (`--no-folding`)
-   - Should create individual file symlinks instead of directory symlinks
-   - Status: Not tested
+1. **No-Folding Mode** (`--no-folding`) ✅ TESTED
+   - Creates individual file symlinks (not directory symlinks)
+   - All files accessible in both modes
+   - Unstash works correctly
+   - Status: Complete (5/5 tests passing)
 
 2. **Conflict Handling** ✅ TESTED
    - All conflict scenarios tested and working
@@ -359,7 +361,7 @@ Restash complete!
 | Idempotent Operations | ✅ PASS | Re-stash works correctly |
 | Multiple Packages | ✅ PASS | 3 packages work correctly |
 | Package Unfolding | ✅ PASS | Content preserved |
-| No-Folding Mode | ⚠️ PENDING | Not yet tested |
+| No-Folding Mode | ✅ PASS | 5/5 tests passing |
 | Ignore Patterns | ⚠️ PENDING | Not yet tested |
 | Deploy Mode | ⚠️ PENDING | Not yet tested |
 
