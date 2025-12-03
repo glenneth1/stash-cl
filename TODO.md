@@ -21,13 +21,16 @@
 - [x] **Task planning system** - PASS
 
 #### ⚠️ Still Need Testing
-- [ ] **Test conflict handling** (HIGH)
-  - Test existing files in target
-  - Test existing directories in target
-  - Test broken symlinks
-  - Test circular symlinks
-  - Verify error messages are clear
-  - **Estimated**: 2-3 hours
+- [x] **Test conflict handling** (HIGH) ✅ COMPLETE
+  - [x] Test existing files in target
+  - [x] Test existing directories in target
+  - [x] Test broken symlinks
+  - [x] Test circular symlinks
+  - [x] Verify error messages are clear
+  - [x] Test idempotent operations (re-stash)
+  - [x] Test simulation mode with conflicts
+  - **Time spent**: 3 hours
+  - **Result**: All 9 tests passing
 
 - [ ] **Test ignore patterns** (HIGH)
   - Test `.stash-global-ignore` functionality
@@ -59,8 +62,8 @@
   - Test on multiple SBCL versions
   - **Estimated**: 4-6 hours
 
-**Remaining Time**: 12-17 hours (1-2 weeks part-time)  
-**Progress**: ~40% complete (core operations tested)
+**Remaining Time**: 9-14 hours (1-2 weeks part-time)  
+**Progress**: ~50% complete (core operations + conflict handling tested)
 
 ---
 

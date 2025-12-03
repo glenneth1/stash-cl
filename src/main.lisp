@@ -86,12 +86,16 @@
 
 (defun resolve-package-path (package stash-dir)
   "Resolve the full path to PACKAGE in STASH-DIR."
-  (let ((package-path (if (string= package ".")
-                          stash-dir
-                          (concatenate 'string stash-dir "/" package))))
-    (unless (uiop:directory-exists-p package-path)
-      (error "Package directory does not exist: ~A" package-path))
-    package-path))
+  (let* ((package-path (if (string= package ".")
+                           stash-dir
+                           (concatenate 'string stash-dir "/" package)))
+         ;; Ensure trailing slash for directory operations
+         (package-path-dir (if (char= (char package-path (1- (length package-path))) #\/)
+                               package-path
+                               (concatenate 'string package-path "/"))))
+    (unless (uiop:directory-exists-p package-path-dir)
+      (error "Package directory does not exist: ~A" package-path-dir))
+    package-path-dir))
 
 (defun resolve-target-path (target stash-dir)
   "Resolve the target directory path."
@@ -116,11 +120,19 @@
   ;; Resolve package path
   (let ((package-path (resolve-package-path package stash-dir)))
     
-    ;; Use enhanced folding
-    (stash-package-with-folding package-path target-dir)
-    
-    ;; Execute (or simulate)
-    (execute-all-tasks :simulate simulate)
+    ;; Use enhanced folding - catch conflicts
+    (handler-case
+        (progn
+          (stash-package-with-folding package-path target-dir)
+          
+          ;; Execute (or simulate)
+          (execute-all-tasks :simulate simulate))
+      
+      (stash-cl/task-planner:conflict-error (c)
+        ;; In simulation mode, conflicts are reported but don't stop execution
+        ;; In normal mode, re-signal the error
+        (unless simulate
+          (error c))))
     
     ;; Show stats
     (print-folding-stats)))

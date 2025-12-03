@@ -227,6 +227,41 @@ Restash complete!
 
 ---
 
+### Bug #8: Conflict Detection Missing ✅ FIXED
+
+**Original Issue**: Stash didn't detect conflicts with existing files/directories
+
+**Root Causes**:
+1. Package path missing trailing slash - `uiop:directory-files` returned wrong directory
+2. No conflict checking before creating symlinks
+3. `stash-package-with-folding` tried to fold target directory instead of stashing contents
+
+**Fixes**:
+1. Added trailing slash to package paths in `resolve-package-path`
+2. Implemented `check-path-conflict` function to detect:
+   - Existing regular files
+   - Existing directories  
+   - Broken symlinks
+   - Symlinks pointing to different packages
+   - Circular symlinks
+3. Changed `stash-package-with-folding` to always stash contents, not fold target
+4. Added `conflict-error` condition for proper error handling
+5. Made operations idempotent (skip if symlink already correct)
+6. Handle conflicts differently in simulation vs normal mode
+
+**Verification** (9/9 tests passing):
+- ✅ Test 1: Existing file conflict detected
+- ✅ Test 2: Existing directory conflict detected
+- ✅ Test 3: Broken symlink conflict detected
+- ✅ Test 4: Symlink to different package detected
+- ✅ Test 5: Re-stash same package (idempotent)
+- ✅ Test 6: Mixed content conflicts detected
+- ✅ Test 7: Simulation mode reports conflicts without erroring
+- ✅ Test 9: Real directory with files detected
+- ✅ Test 10: Circular symlinks detected
+
+---
+
 ## Features Not Yet Tested
 
 ### ⚠️ Pending Tests
@@ -235,9 +270,9 @@ Restash complete!
    - Should create individual file symlinks instead of directory symlinks
    - Status: Not tested
 
-2. **Conflict Handling**
-   - What happens when target files already exist?
-   - Status: Not tested
+2. **Conflict Handling** ✅ TESTED
+   - All conflict scenarios tested and working
+   - Status: Complete (9/9 tests passing)
 
 3. **Ignore Patterns**
    - `.stash-global-ignore` file created but not tested
@@ -281,8 +316,10 @@ Restash complete!
 | Tree Folding | ✅ PASS | Intelligent directory folding |
 | Task Planning | ✅ PASS | All operations planned first |
 | Bug #7 Fix | ✅ PASS | Verbosity no longer crashes |
+| Bug #8 Fix | ✅ PASS | Conflict detection working |
+| Conflict Handling | ✅ PASS | 9/9 tests passing |
+| Idempotent Operations | ✅ PASS | Re-stash works correctly |
 | No-Folding Mode | ⚠️ PENDING | Not yet tested |
-| Conflict Handling | ⚠️ PENDING | Not yet tested |
 | Ignore Patterns | ⚠️ PENDING | Not yet tested |
 | Multiple Packages | ⚠️ PENDING | Not yet tested |
 | Deploy Mode | ⚠️ PENDING | Not yet tested |

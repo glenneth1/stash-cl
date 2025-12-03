@@ -112,7 +112,10 @@
            #:task-source
            #:task-dest
            #:planner-state
-           #:*planner-state*))
+           #:*planner-state*
+           #:conflict-error
+           #:conflict-error-message
+           #:conflict-error-path))
 
 (defpackage #:stash-cl/folding
   (:use #:cl)

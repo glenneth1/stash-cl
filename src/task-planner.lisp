@@ -2,6 +2,15 @@
 
 (in-package #:stash-cl/task-planner)
 
+;;; Conflict error condition
+
+(define-condition conflict-error (error)
+  ((message :initarg :message :reader conflict-error-message)
+   (path :initarg :path :reader conflict-error-path))
+  (:report (lambda (condition stream)
+             (format stream "Conflict detected: ~A"
+                     (conflict-error-message condition)))))
+
 ;;; Task structure
 
 (defstruct task
@@ -174,13 +183,24 @@
   
   ;; Check for conflicts first
   (when (has-conflicts-p)
-    (format t "~%ERROR: Cannot execute tasks due to conflicts:~%")
-    (dolist (conflict (get-conflicts))
-      (format t "  - Package ~A: ~A~@[ (~A)~]~%"
-              (getf conflict :package)
-              (getf conflict :message)
-              (getf conflict :path)))
-    (return-from execute-all-tasks nil))
+    (if simulate
+        ;; In simulation mode, just report conflicts but continue
+        (progn
+          (format t "~%CONFLICTS DETECTED (simulation mode):~%")
+          (dolist (conflict (get-conflicts))
+            (format t "  - Package ~A: ~A~@[ (~A)~]~%"
+                    (getf conflict :package)
+                    (getf conflict :message)
+                    (getf conflict :path))))
+        ;; In normal mode, error out
+        (progn
+          (format t "~%ERROR: Cannot execute tasks due to conflicts:~%")
+          (dolist (conflict (get-conflicts))
+            (format t "  - Package ~A: ~A~@[ (~A)~]~%"
+                    (getf conflict :package)
+                    (getf conflict :message)
+                    (getf conflict :path)))
+          (return-from execute-all-tasks nil))))
   
   ;; Validate all tasks
   (unless (validate-all-tasks)
@@ -247,9 +267,67 @@
 
 ;;; Helper functions for common task patterns
 
+(defun read-symlink-target (path)
+  "Read the target of a symlink at PATH."
+  #+osicat
+  (osicat:read-link path)
+  #-osicat
+  (let ((output (uiop:run-program (list "readlink" path)
+                                  :output :string
+                                  :ignore-error-status t)))
+    (string-trim '(#\Newline #\Return) output)))
+
+(defun check-path-conflict (path source)
+  "Check if PATH has a conflict. Returns NIL if no conflict, error message if conflict."
+  (cond
+    ;; Path doesn't exist - no conflict
+    ((not (probe-file path))
+     nil)
+    
+    ;; Path is a symlink
+    ((stash-cl/file-ops:file-is-symlink-p path)
+     (let ((link-target (read-symlink-target path)))
+       (cond
+         ;; Symlink points to same source - no conflict (idempotent)
+         ((string= (namestring (truename link-target))
+                  (namestring (truename source)))
+          nil)
+         
+         ;; Symlink points to different location - conflict
+         (t
+          (format nil "Symlink already exists pointing to different location: ~A -> ~A (want: ~A)"
+                  path link-target source)))))
+    
+    ;; Path is a regular file - conflict
+    ((stash-cl/file-ops:file-is-regular-p path)
+     (format nil "Regular file already exists at: ~A" path))
+    
+    ;; Path is a directory - conflict
+    ((stash-cl/file-ops:file-is-directory-p path)
+     (format nil "Directory already exists at: ~A" path))
+    
+    ;; Unknown type - conflict
+    (t
+     (format nil "Path already exists (unknown type): ~A" path))))
+
 (defun plan-create-link (path source)
-  "Plan creation of a symlink from PATH to SOURCE."
-  (add-task :create :link path :source source))
+  "Plan creation of a symlink from PATH to SOURCE. Checks for conflicts first."
+  (let ((conflict (check-path-conflict path source)))
+    (cond
+      ;; Conflict detected - add to conflict list and signal error
+      (conflict
+       (add-conflict "stash" conflict path)
+       (error 'conflict-error :message conflict :path path))
+      
+      ;; Path already exists and points to same source - skip (idempotent)
+      ((and (probe-file path)
+            (stash-cl/file-ops:file-is-symlink-p path))
+       ;; Symlink already correct, nothing to do
+       nil)
+      
+      ;; Path doesn't exist - create it
+      (t
+       (add-task :create :link path :source source)))))
 
 (defun plan-remove-link (path)
   "Plan removal of a symlink at PATH."

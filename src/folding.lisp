@@ -304,13 +304,10 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
   (when (>= *folding-verbosity* 1)
     (format t "~%Analyzing package structure for optimal folding...~%"))
   
-  ;; Try to fold at the top level
-  (if (can-fold-directory-p target-path package-path)
-      (fold-directory target-path package-path)
-      ;; Can't fold top level, stash contents
-      (progn
-        (stash-cl/task-planner:plan-create-dir target-path)
-        (stash-directory-contents target-path package-path)))
+  ;; Always stash contents into target, never fold the target itself
+  ;; The target directory is the stash target (e.g., /usr/local), not a package
+  (stash-cl/task-planner:plan-create-dir target-path)
+  (stash-directory-contents target-path package-path)
   
   (print-folding-stats))
 
