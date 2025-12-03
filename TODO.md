@@ -9,7 +9,18 @@
 
 ## Priority 1: Critical Testing (Week 1-2)
 
-### Testing Coverage
+### Testing Coverage - PARTIALLY COMPLETE
+
+#### ✅ Already Tested
+- [x] **Basic stash operation** - PASS
+- [x] **Unstash operation** - PASS  
+- [x] **Restash operation** - PASS
+- [x] **Verbosity levels (0-2)** - PASS
+- [x] **Simulation mode** - PASS
+- [x] **Tree folding** - PASS
+- [x] **Task planning system** - PASS
+
+#### ⚠️ Still Need Testing
 - [ ] **Test conflict handling** (HIGH)
   - Test existing files in target
   - Test existing directories in target
@@ -42,13 +53,14 @@
   - Verify selective deployment
   - **Estimated**: 1 hour
 
-- [ ] **Create automated test suite** (HIGH)
-  - Convert manual tests to automated scripts
+- [ ] **Expand automated test suite** (HIGH)
+  - Convert remaining manual tests to automated scripts
   - Add CI/CD integration (GitHub Actions)
   - Test on multiple SBCL versions
   - **Estimated**: 4-6 hours
 
-**Total Estimated Time**: 12-17 hours (1-2 weeks part-time)
+**Remaining Time**: 12-17 hours (1-2 weeks part-time)  
+**Progress**: ~40% complete (core operations tested)
 
 ---
 
@@ -248,7 +260,8 @@
 ## Timeline Summary
 
 ### Short Term (Weeks 1-5) - **RECOMMENDED FOCUS**
-1. **Week 1-2**: Complete testing of existing features
+1. **Week 1-2**: Complete remaining testing (conflict handling, ignore patterns, etc.)
+   - Status: ~40% complete (core operations already tested ✅)
 2. **Week 3-4**: Implement `--adopt` and `--ignore=REGEX`
 3. **Week 5**: Create man page and improve documentation
 
