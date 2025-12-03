@@ -322,9 +322,12 @@ Restash complete!
    - All packages work correctly with unfolding
    - Status: Complete (all tests passing)
 
-5. **Deploy Mode**
-   - Stash all packages in directory
-   - Status: Not tested
+5. **Deploy Mode** ✅ TESTED
+   - Deploys all packages in directory at once
+   - Handles overlapping directories correctly
+   - Works with simulation mode
+   - Produces same result as individual stashing
+   - Status: Complete (6/6 tests passing)
 
 6. **Edge Cases**
    - Broken symlinks
@@ -363,7 +366,7 @@ Restash complete!
 | Package Unfolding | ✅ PASS | Content preserved |
 | No-Folding Mode | ✅ PASS | 5/5 tests passing |
 | Ignore Patterns | ⚠️ PENDING | Not yet tested |
-| Deploy Mode | ⚠️ PENDING | Not yet tested |
+| Deploy Mode | ✅ PASS | 6/6 tests passing |
 
 ---
 

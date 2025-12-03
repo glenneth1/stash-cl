@@ -58,10 +58,13 @@
   - **Time spent**: 15 minutes
   - **Result**: All 5 tests passing
 
-- [ ] **Test deploy mode** (LOW)
-  - Deploy all packages in directory
-  - Verify selective deployment
-  - **Estimated**: 1 hour
+- [x] **Test deploy mode** (LOW) ✅ COMPLETE
+  - [x] Deploy all packages in directory
+  - [x] Verify overlapping directory handling
+  - [x] Test simulation mode compatibility
+  - [x] Compare with individual stashing
+  - **Time spent**: 20 minutes
+  - **Result**: All 6 tests passing
 
 - [ ] **Expand automated test suite** (HIGH)
   - Convert remaining manual tests to automated scripts
@@ -69,8 +72,8 @@
   - Test on multiple SBCL versions
   - **Estimated**: 4-6 hours
 
-**Remaining Time**: 6-11 hours (1-2 weeks part-time)  
-**Progress**: ~65% complete (core operations + conflict handling + multiple packages + no-folding tested)
+**Remaining Time**: 5-10 hours (1-2 weeks part-time)  
+**Progress**: ~70% complete (core operations + conflict handling + multiple packages + no-folding + deploy mode tested)
 
 ---
 
