@@ -39,7 +39,35 @@ This produces two files:
 
 See [COMPRESSION.md](COMPRESSION.md) for details on compression options and [PACKAGING.md](PACKAGING.md) for distribution guidelines.
 
+## Installation
+
+### System-wide Installation
+```bash
+sudo make install
+```
+
+This installs:
+- `stash` and `stash.bin` to `/usr/local/bin/`
+- Man page to `/usr/local/share/man/man1/`
+
+### Custom Installation Directory
+```bash
+sudo make install PREFIX=/opt/stash
+```
+
+### Uninstall
+```bash
+sudo make uninstall
+```
+
 ## Usage
+
+For detailed usage information, see the man page:
+```bash
+man stash
+```
+
+### Quick Examples
 
 ```bash
 # Stash a package

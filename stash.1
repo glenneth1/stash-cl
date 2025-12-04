@@ -1,0 +1,271 @@
+.TH STASH 1 "December 2025" "stash-cl 0.1.0" "User Commands"
+.SH NAME
+stash \- manage dotfiles and symlinks with intelligent tree folding
+.SH SYNOPSIS
+.B stash
+[\fIOPTION\fR]... \fIPACKAGE\fR...
+.SH DESCRIPTION
+.B stash
+is a symlink farm manager which takes distinct packages of software
+and/or data located in separate directories on the filesystem, and
+makes them appear to be installed in the same place. This is particularly
+useful for managing dotfiles and configuration files across multiple
+machines.
+.PP
+.B stash
+is a GNU Stow replacement written in Common Lisp with enhanced tree
+folding capabilities. It automatically folds directory trees into
+single symlinks when possible, and unfolds them when necessary to
+accommodate multiple packages.
+.PP
+The approach used by
+.B stash
+is to install each package into its own tree under a single directory
+(by default the current directory), then use symbolic links to make it
+appear as though the files are installed in the target directory
+(by default the parent of the stash directory).
+.SH OPTIONS
+.SS "Action Options"
+.TP
+.B \-D, \-\-delete
+Unstash the specified packages. This removes the symlinks created by
+stashing, and refolds any directories that were unfolded.
+.TP
+.B \-R, \-\-restash
+Restash the specified packages. This is equivalent to unstashing and
+then stashing again. Useful for updating packages after changes.
+.TP
+.B \-d, \-\-deploy
+Deploy mode: stash all packages found in the stash directory. This is
+useful for initial setup on a new machine.
+.SS "Directory Options"
+.TP
+.BI "\-\-dir=" DIR
+Set the stash directory to
+.IR DIR .
+This is the directory containing your packages. Defaults to the current
+directory.
+.TP
+.BI "\-s, \-\-source=" DIR
+Specify the source directory for the package. This is an alternative
+way to specify the stash directory.
+.TP
+.BI "\-t, \-\-target=" DIR
+Set the target directory to
+.IR DIR .
+This is where the symlinks will be created. Defaults to the parent
+of the stash directory.
+.SS "Simulation and Verbosity Options"
+.TP
+.B \-n, \-\-simulate
+Simulation mode (dry-run). Show what would be done without actually
+making any changes to the filesystem.
+.TP
+.B \-v, \-\-verbose
+Increase verbosity level. Can be specified multiple times for more
+detailed output:
+.RS
+.IP \(bu 2
+\fB\-v\fR: Show folding decisions and operations
+.IP \(bu 2
+\fB\-vv\fR: Show detailed folding analysis
+.IP \(bu 2
+\fB\-vvv\fR: Show all internal operations (debug level)
+.RE
+.TP
+.B \-\-no\-folding
+Disable tree folding. Create individual symlinks for each file instead
+of folding directories. This is useful when you need fine-grained control
+over which files are symlinked.
+.SS "Help Options"
+.TP
+.B \-h
+Display help message and exit. Note: use \fB\-h\fR instead of \fB\-\-help\fR
+due to SBCL runtime limitations.
+.TP
+.B \-\-version
+Display version information and exit.
+.SH "IGNORE PATTERNS"
+.B stash
+supports ignore patterns to exclude certain files from being stashed.
+Patterns can be specified in two ways:
+.SS "Global Ignore File"
+.TP
+.I ~/.stash\-global\-ignore
+This file contains patterns that apply to all packages. Each line
+contains one pattern. Lines starting with # are comments.
+.SS "Local Ignore File"
+.TP
+.I PACKAGE/.stash\-local\-ignore
+This file contains patterns specific to a package. It follows the same
+format as the global ignore file.
+.SS "Pattern Syntax"
+Patterns support glob-style wildcards:
+.RS
+.IP \(bu 2
+\fB*\fR matches any characters
+.IP \(bu 2
+\fB?\fR matches a single character
+.IP \(bu 2
+\fB*.log\fR matches all files ending in .log
+.IP \(bu 2
+\fBtest-*\fR matches all files starting with test-
+.IP \(bu 2
+\fB*-backup\fR matches all files ending with -backup
+.IP \(bu 2
+\fBtemp/*\fR matches the temp directory and all its contents
+.RE
+.SS "Default Patterns"
+The following patterns are always ignored:
+.RS
+.IP \(bu 2
+.git
+.IP \(bu 2
+.gitignore
+.IP \(bu 2
+README*
+.IP \(bu 2
+LICENSE
+.IP \(bu 2
+COPYING
+.RE
+.SH "TREE FOLDING"
+One of the key features of
+.B stash
+is intelligent tree folding. When stashing a package, it will:
+.IP 1. 3
+Try to fold entire directories into single symlinks when possible
+.IP 2. 3
+Unfold directories when multiple packages need to share them
+.IP 3. 3
+Automatically refold directories when packages are unstashed
+.IP 4. 3
+Skip folding directories that contain ignored files
+.PP
+This results in a cleaner target directory with fewer symlinks while
+maintaining full functionality.
+.PP
+Example: If you have packages A and B, both with a
+.I bin/
+directory, stash will unfold the
+.I bin/
+directory and create individual symlinks for each file. If you later
+unstash package B, stash will automatically refold the
+.I bin/
+directory into a single symlink to package A.
+.SH EXAMPLES
+.SS "Basic Usage"
+Stash a package named 'emacs' from the current directory:
+.PP
+.nf
+.RS
+cd ~/.dotfiles
+stash emacs
+.RE
+.fi
+.SS "Specify Directories"
+Stash a package with explicit directories:
+.PP
+.nf
+.RS
+stash \-\-dir ~/dotfiles \-\-target ~ vim
+.RE
+.fi
+.SS "Simulation Mode"
+See what would happen without making changes:
+.PP
+.nf
+.RS
+stash \-n emacs
+.RE
+.fi
+.SS "Verbose Output"
+Get detailed information about folding decisions:
+.PP
+.nf
+.RS
+stash \-vv emacs
+.RE
+.fi
+.SS "Unstash a Package"
+Remove symlinks for a package:
+.PP
+.nf
+.RS
+stash \-D emacs
+.RE
+.fi
+.SS "Restash a Package"
+Update a package after making changes:
+.PP
+.nf
+.RS
+stash \-R emacs
+.RE
+.fi
+.SS "Deploy All Packages"
+Stash all packages in the stash directory:
+.PP
+.nf
+.RS
+cd ~/.dotfiles
+stash \-d
+.RE
+.fi
+.SS "Disable Folding"
+Create individual file symlinks instead of folding:
+.PP
+.nf
+.RS
+stash \-\-no\-folding perl
+.RE
+.fi
+.SH FILES
+.TP
+.I ~/.stash\-global\-ignore
+Global ignore patterns file
+.TP
+.I PACKAGE/.stash\-local\-ignore
+Package-specific ignore patterns file
+.SH "EXIT STATUS"
+.TP
+.B 0
+Success
+.TP
+.B 1
+Error occurred (conflicts, missing packages, etc.)
+.SH "COMPARISON WITH GNU STOW"
+.B stash
+provides several enhancements over GNU Stow:
+.IP \(bu 2
+\fBEnhanced tree folding\fR: Automatically folds and unfolds directory
+trees as needed, with partial folding support
+.IP \(bu 2
+\fBAutomatic refolding\fR: Refolds directories after unstashing packages
+.IP \(bu 2
+\fBTask planning system\fR: Validates all operations before executing
+.IP \(bu 2
+\fBBetter ignore patterns\fR: Supports both global and local ignore files
+with glob patterns
+.IP \(bu 2
+\fBRestash operation\fR: Single command to unstash and re-stash
+.IP \(bu 2
+\fBDetailed statistics\fR: Shows exactly what was folded, unfolded, and
+symlinked
+.IP \(bu 2
+\fBSmaller footprint\fR: Single 14MB executable vs Perl + dependencies
+.SH BUGS
+Report bugs to: https://github.com/glenneth1/stash-cl/issues
+.SH AUTHOR
+Written by Glenn.
+.SH COPYRIGHT
+Copyright \(co 2025 Glenn.
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+.BR ln (1),
+.BR stow (8)
+.PP
+Full documentation at: https://github.com/glenneth1/stash-cl

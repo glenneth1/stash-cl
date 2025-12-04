@@ -1,6 +1,6 @@
 # Makefile for stash-cl
 
-.PHONY: all build clean test compress compress-max install-upx
+.PHONY: all build clean test compress compress-max install-upx install install-man uninstall
 
 all: build
 
@@ -78,11 +78,43 @@ test: build
 	@echo "Running tests..."
 	./test-cli-integration.sh
 
+# Installation
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
+MANDIR = $(PREFIX)/share/man/man1
+
+install: build
+	@echo "Installing stash to $(BINDIR)..."
+	install -d $(BINDIR)
+	install -m 755 stash $(BINDIR)/
+	install -m 755 stash.bin $(BINDIR)/
+	@echo "Installing man page to $(MANDIR)..."
+	install -d $(MANDIR)
+	install -m 644 stash.1 $(MANDIR)/
+	@echo "Installation complete!"
+	@echo "Run 'stash --version' to verify"
+
+install-man:
+	@echo "Installing man page to $(MANDIR)..."
+	install -d $(MANDIR)
+	install -m 644 stash.1 $(MANDIR)/
+	@echo "Man page installed. Run 'man stash' to view"
+
+uninstall:
+	@echo "Uninstalling stash..."
+	rm -f $(BINDIR)/stash
+	rm -f $(BINDIR)/stash.bin
+	rm -f $(MANDIR)/stash.1
+	@echo "Uninstall complete"
+
 help:
 	@echo "Available targets:"
 	@echo "  make build        - Build the stash executable with SBCL compression"
 	@echo "  make compress     - Build and apply UPX compression (--best --lzma)"
 	@echo "  make compress-max - Build and apply maximum UPX compression (--ultra-brute)"
+	@echo "  make install      - Install stash and man page to $(PREFIX)"
+	@echo "  make install-man  - Install only the man page"
+	@echo "  make uninstall    - Remove installed files"
 	@echo "  make install-upx  - Install UPX compression tool"
 	@echo "  make clean        - Remove build artifacts"
 	@echo "  make test         - Run integration tests"

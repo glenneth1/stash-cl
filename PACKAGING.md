@@ -2,10 +2,11 @@
 
 ## Package Contents
 
-When distributing stash-cl, you need to ship **two files**:
+When distributing stash-cl, you need to ship **three files**:
 
 1. **`stash`** - Shell wrapper script (405 bytes)
 2. **`stash.bin`** - Compressed Common Lisp executable (~14-16 MB)
+3. **`stash.1`** - Man page (~6 KB)
 
 ## Why Two Files?
 
@@ -13,16 +14,21 @@ SBCL's runtime intercepts `--version` and `--help` flags before the application 
 
 ## Installation
 
-Users should install both files to the same directory (e.g., `/usr/local/bin` or `~/.local/bin`):
+Users should install all files:
 
 ```bash
 # System-wide installation
 sudo install -m 755 stash /usr/local/bin/
 sudo install -m 755 stash.bin /usr/local/bin/
+sudo install -m 644 stash.1 /usr/local/share/man/man1/
 
 # User installation
 install -m 755 stash ~/.local/bin/
 install -m 755 stash.bin ~/.local/bin/
+install -m 644 stash.1 ~/.local/share/man/man1/
+
+# Or use the Makefile
+sudo make install
 ```
 
 ## Package Formats
@@ -42,6 +48,7 @@ depends=('bash')
 package() {
     install -Dm755 "$srcdir/stash" "$pkgdir/usr/bin/stash"
     install -Dm755 "$srcdir/stash.bin" "$pkgdir/usr/bin/stash.bin"
+    install -Dm644 "$srcdir/stash.1" "$pkgdir/usr/share/man/man1/stash.1"
 }
 ```
 
@@ -51,6 +58,7 @@ Create a `debian/install` file:
 ```
 stash usr/bin
 stash.bin usr/bin
+stash.1 usr/share/man/man1
 ```
 
 ### RPM (.spec)
@@ -59,22 +67,28 @@ stash.bin usr/bin
 %install
 install -Dm755 stash %{buildroot}%{_bindir}/stash
 install -Dm755 stash.bin %{buildroot}%{_bindir}/stash.bin
+install -Dm644 stash.1 %{buildroot}%{_mandir}/man1/stash.1
 
 %files
 %{_bindir}/stash
 %{_bindir}/stash.bin
+%{_mandir}/man1/stash.1
 ```
 
 ### Tarball Distribution
 
 ```bash
 # Create release tarball
-tar czf stash-cl-0.1.0-linux-x86_64.tar.gz stash stash.bin README.md
+tar czf stash-cl-0.1.0-linux-x86_64.tar.gz stash stash.bin stash.1 README.md
 
 # Users extract and install
 tar xzf stash-cl-0.1.0-linux-x86_64.tar.gz
 cd stash-cl-0.1.0
 sudo install -m 755 stash stash.bin /usr/local/bin/
+sudo install -m 644 stash.1 /usr/local/share/man/man1/
+
+# Or use make
+sudo make install
 ```
 
 ## Single-File Alternative (Not Recommended)
