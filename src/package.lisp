@@ -7,7 +7,11 @@
            #:color-green
            #:color-yellow
            #:color-blue
-           #:color-reset))
+           #:color-bold
+           #:color-reset
+           #:format-error
+           #:format-warning
+           #:format-success))
 
 (defpackage #:stash-cl/log
   (:use #:cl)
