@@ -40,15 +40,16 @@
   - **Time spent**: 2 hours
   - **Result**: All packages work correctly, content preserved
 
-- [ ] **Test ignore patterns** (HIGH) ⚠️ PARTIALLY IMPLEMENTED
+- [x] **Test ignore patterns** (HIGH) ✅ COMPLETE
   - [x] Integrated ignore pattern reading into folding
   - [x] Added glob-to-regex conversion
   - [x] Basic patterns work (*.log, *.tmp)
-  - [ ] Complex glob patterns need work (test-*, *-backup, .git*)
-  - [ ] Fix package export for *current-ignore-patterns*
-  - **Status**: Basic functionality works, needs refinement
-  - **Time spent**: 2 hours
-  - **Estimated remaining**: 1-2 hours
+  - [x] Complex glob patterns (test-*, *-backup, .git*)
+  - [x] Directory patterns (temp/*, node_modules/*)
+  - [x] Prevent folding directories with ignored files
+  - **Status**: All 7 tests passing
+  - **Time spent**: 3 hours
+  - **Result**: Fully functional ignore system
 
 - [x] **Test no-folding mode** (MEDIUM) ✅ COMPLETE
   - [x] Verify individual file symlinks created
@@ -72,8 +73,16 @@
   - Test on multiple SBCL versions
   - **Estimated**: 4-6 hours
 
-**Remaining Time**: 5-10 hours (1-2 weeks part-time)  
-**Progress**: ~70% complete (core operations + conflict handling + multiple packages + no-folding + deploy mode tested)
+- [x] **Executable compression** (MEDIUM) ✅ COMPLETE
+  - [x] Implement SBCL compression (level 9)
+  - [x] Add UPX compression support
+  - [x] Create wrapper script for --version/--help
+  - [x] Multi-platform package manager support
+  - **Result**: 88% size reduction (121MB → 14MB)
+  - **Time spent**: 2 hours
+
+**Remaining Time**: 4-6 hours (1 week part-time)  
+**Progress**: ~85% complete (all core features tested, ignore patterns working, compression implemented)
 
 ---
 
