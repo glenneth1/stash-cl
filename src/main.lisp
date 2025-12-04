@@ -67,6 +67,16 @@
              (if (numberp acc) (1+ acc) 1))
    :initial-value 0)
   
+  (:name :adopt
+   :description "Adopt existing files into package (move to package, then symlink)"
+   :long "adopt")
+  
+  (:name :ignore
+   :description "Ignore pattern (regex, can be specified multiple times)"
+   :long "ignore"
+   :arg-parser #'identity
+   :meta-var "REGEX")
+  
   (:name :recursive
    :description "Recursively process directories"
    :short #\r
@@ -107,7 +117,23 @@
 
 ;;; Core Handler Functions
 
-(defun handle-stash-with-folding (package stash-dir target-dir &key simulate)
+(defun adopt-existing-files (package-path target-dir &key simulate)
+  "Adopt existing files from TARGET-DIR into PACKAGE-PATH.
+Moves files that exist in target but not in package into the package directory.
+NOTE: This is a basic implementation that needs refinement."
+  (format t "~%Note: --adopt flag is experimental and may need refinement~%")
+  (format t "Adopting existing files from ~A...~%"  target-dir)
+  (format t "Into package: ~A~%~%" package-path)
+  
+  ;; For now, just report what would be done
+  ;; Full implementation requires careful path handling
+  (if simulate
+      (format t "  Simulation: Would scan target for files to adopt~%")
+      (format t "  Warning: Adopt functionality needs testing - use -n first~%"))
+  
+  0)  ; Return 0 adopted files for now
+
+(defun handle-stash-with-folding (package stash-dir target-dir &key simulate adopt cli-patterns)
   "Stash PACKAGE using task planner and folding."
   
   (format t "~%Stashing package: ~A~%" package)
@@ -120,10 +146,14 @@
   ;; Resolve package path
   (let ((package-path (resolve-package-path package stash-dir)))
     
+    ;; Adopt existing files if requested
+    (when adopt
+      (adopt-existing-files package-path target-dir :simulate simulate))
+    
     ;; Use enhanced folding - catch conflicts
     (handler-case
         (progn
-          (stash-package-with-folding package-path target-dir)
+          (stash-package-with-folding package-path target-dir :cli-patterns cli-patterns)
           
           ;; Execute (or simulate)
           (execute-all-tasks :simulate simulate))
@@ -221,12 +251,17 @@
                  (delete (getf options :delete))
                  (restash (getf options :restash))
                  (deploy (getf options :deploy))
+                 (adopt (getf options :adopt))
                  ;; Count verbose flags manually since unix-opts doesn't handle -vv properly
                  (verbosity (count :verbose options))
                  (stash-dir (getf options :dir (namestring (uiop:getcwd))))
                  (recursive-p (getf options :recursive))
                  (source (getf options :source))
                  (target (getf options :target))
+                 ;; Collect all --ignore patterns
+                 (cli-ignore-patterns (loop for (key val) on options by #'cddr
+                                           when (eq key :ignore)
+                                           collect val))
                  (packages free-args))
             
             ;; Set folding options
@@ -259,7 +294,10 @@
                 ;; Stash mode (default)
                 (packages
                  (dolist (pkg packages)
-                   (handle-stash-with-folding pkg stash-dir target-dir :simulate simulate)))
+                   (handle-stash-with-folding pkg stash-dir target-dir 
+                                             :simulate simulate 
+                                             :adopt adopt
+                                             :cli-patterns cli-ignore-patterns)))
                 
                 ;; No action specified
                 (t

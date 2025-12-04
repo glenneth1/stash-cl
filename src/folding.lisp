@@ -433,14 +433,19 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
 (defparameter *current-ignore-patterns* nil
   "Ignore patterns for the current package being stashed.")
 
-(defun stash-package-with-folding (package-path target-path)
-  "Stash PACKAGE-PATH to TARGET-PATH with intelligent folding."
+(defun stash-package-with-folding (package-path target-path &key cli-patterns)
+  "Stash PACKAGE-PATH to TARGET-PATH with intelligent folding.
+CLI-PATTERNS are additional ignore patterns from command line."
   
   (reset-folding-stats)
   
   ;; Read ignore patterns for this package
   (setf *current-ignore-patterns* 
-        (stash-cl/package-mgmt:read-ignore-patterns package-path))
+        (append (stash-cl/package-mgmt:read-ignore-patterns package-path)
+                cli-patterns))
+  
+  (when (and cli-patterns (>= *folding-verbosity* 1))
+    (format t "~%Using ~A CLI ignore pattern(s)~%" (length cli-patterns)))
   
   (when (>= *folding-verbosity* 1)
     (format t "~%Analyzing package structure for optimal folding...~%"))
