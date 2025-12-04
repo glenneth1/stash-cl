@@ -184,4 +184,5 @@
                 #:stash-package-with-folding
                 #:unstash-package-with-refolding
                 #:print-folding-stats)
-  (:export #:main))
+  (:export #:main
+           #:toplevel-entry))

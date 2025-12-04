@@ -285,3 +285,8 @@
       (error (condition)
         (format t "Error: ~A~%" condition)
         (uiop:quit 1)))))
+
+(defun toplevel-entry ()
+  "Entry point for the standalone executable."
+  (main)
+  (uiop:quit 0))

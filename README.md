@@ -23,12 +23,21 @@ A GNU Stow replacement written in Common Lisp with enhanced tree folding and int
 ## Building
 
 ```bash
-# Build the executable
+# Build the executable (with SBCL compression)
 make
+
+# Build with maximum compression (SBCL + UPX)
+make compress-max
 
 # Or manually:
 sbcl --load build.lisp
 ```
+
+This produces two files:
+- **`stash`** - Shell wrapper script (handles --version and --help)
+- **`stash.bin`** - Compressed executable (~14-16 MB)
+
+See [COMPRESSION.md](COMPRESSION.md) for details on compression options and [PACKAGING.md](PACKAGING.md) for distribution guidelines.
 
 ## Usage
 
