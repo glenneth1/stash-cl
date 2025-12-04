@@ -30,6 +30,13 @@ Returns T if the directory can be folded, NIL otherwise."
   (unless *folding-enabled*
     (return-from can-fold-directory-p nil))
   
+  ;; Can't fold if directory contains files that should be ignored
+  (when (and *current-ignore-patterns*
+             (directory-has-ignored-files-p package-path *current-ignore-patterns*))
+    (when (>= *folding-verbosity* 2)
+      (format t "  Cannot fold ~A: contains ignored files~%" target-path))
+    (return-from can-fold-directory-p nil))
+  
   ;; Can't fold if target already exists and is not a symlink
   (when (and (probe-file target-path)
              (not (stash-cl/file-ops:file-is-symlink-p target-path)))
@@ -52,6 +59,28 @@ Returns T if the directory can be folded, NIL otherwise."
   
   ;; Target doesn't exist - we can fold
   t)
+
+(defun directory-has-ignored-files-p (dir-path patterns)
+  "Check if DIR-PATH contains any files that match ignore PATTERNS (recursively)."
+  (when (probe-file dir-path)
+    (let ((dir-path-with-slash (if (char= (char dir-path (1- (length dir-path))) #\/)
+                                    dir-path
+                                    (concatenate 'string dir-path "/"))))
+      ;; Check files in this directory
+      (dolist (file (uiop:directory-files dir-path-with-slash))
+        (let ((filename (file-namestring file)))
+          (when (stash-cl/package-mgmt:should-ignore-p filename patterns)
+            (return-from directory-has-ignored-files-p t))))
+      ;; Check subdirectories recursively
+      (dolist (subdir (uiop:subdirectories dir-path-with-slash))
+        (let ((dirname (car (last (pathname-directory subdir)))))
+          ;; Check if directory itself should be ignored
+          (when (stash-cl/package-mgmt:should-ignore-p dirname patterns)
+            (return-from directory-has-ignored-files-p t))
+          ;; Recursively check subdirectory contents
+          (when (directory-has-ignored-files-p (namestring subdir) patterns)
+            (return-from directory-has-ignored-files-p t))))))
+  nil)
 
 (defun directory-empty-or-owned-p (dir-path)
   "Check if DIR-PATH is empty.

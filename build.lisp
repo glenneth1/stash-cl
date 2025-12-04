@@ -30,7 +30,6 @@
                           :toplevel #'stash-cl:toplevel-entry
                           :executable t
                           :compression 9
-                          :save-runtime-options nil
                           :purify t)
 
 #-sbcl

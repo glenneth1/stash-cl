@@ -44,23 +44,29 @@
 
 (defun glob-to-regex (glob)
   "Convert a glob pattern to a regex pattern.
-Supports: * (any chars), ? (single char), simple patterns."
-  (let ((regex (with-output-to-string (s)
-                 (loop for char across glob
-                       do (case char
-                            (#\* (write-string ".*" s))
-                            (#\? (write-string "." s))
-                            (#\. (write-string "\\." s))
-                            (#\+ (write-string "\\+" s))
-                            (#\[ (write-string "\\[" s))
-                            (#\] (write-string "\\]" s))
-                            (#\( (write-string "\\(" s))
-                            (#\) (write-string "\\)" s))
-                            (#\{ (write-string "\\{" s))
-                            (#\} (write-string "\\}" s))
-                            (#\^ (write-string "\\^" s))
-                            (#\$ (write-string "\\$" s))
-                            (t (write-char char s)))))))
+Supports: * (any chars), ? (single char), simple patterns.
+Patterns ending with /* match the directory name before the slash."
+  (let* ((ends-with-slash-star (and (>= (length glob) 2)
+                                     (string= (subseq glob (- (length glob) 2)) "/*")))
+         (pattern-to-convert (if ends-with-slash-star
+                                  (subseq glob 0 (- (length glob) 2))  ; Remove /*
+                                  glob))
+         (regex (with-output-to-string (s)
+                  (loop for char across pattern-to-convert
+                        do (case char
+                             (#\* (write-string ".*" s))
+                             (#\? (write-string "." s))
+                             (#\. (write-string "\\." s))
+                             (#\+ (write-string "\\+" s))
+                             (#\[ (write-string "\\[" s))
+                             (#\] (write-string "\\]" s))
+                             (#\( (write-string "\\(" s))
+                             (#\) (write-string "\\)" s))
+                             (#\{ (write-string "\\{" s))
+                             (#\} (write-string "\\}" s))
+                             (#\^ (write-string "\\^" s))
+                             (#\$ (write-string "\\$" s))
+                             (t (write-char char s)))))))
     ;; Anchor the pattern to match the whole filename
     (concatenate 'string "^" regex "$")))
 
