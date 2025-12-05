@@ -29,7 +29,7 @@
 (sb-ext:save-lisp-and-die "stash.bin"
                           :toplevel #'stash-cl:toplevel-entry
                           :executable t
-                          :compression 12
+                          :compression 22
                           :purify t)
 
 #-sbcl

@@ -49,17 +49,36 @@
 ### Building from Source
 
 ```bash
-git clone https://github.com/yourusername/stash-cl.git
+git clone https://github.com/glenneth1/stash-cl.git
 cd stash-cl
 make
 ```
 
-This creates a standalone executable `./stash`.
+This creates two files:
+- `./stash` - Shell wrapper script (handles --version and --help)
+- `./stash.bin` - Compressed SBCL executable (~16MB)
 
 ### Installing System-Wide
 
+Use the provided Makefile target:
+
 ```bash
-sudo cp stash /usr/local/bin/
+sudo make install
+```
+
+This installs both files to `/usr/local/bin/` and the man page to `/usr/local/share/man/man1/`.
+
+Or manually:
+
+```bash
+sudo cp stash stash.bin /usr/local/bin/
+sudo cp stash.1 /usr/local/share/man/man1/
+```
+
+### Uninstalling
+
+```bash
+sudo make uninstall
 ```
 
 ---
@@ -766,7 +785,7 @@ stash -n vim
 
 ### Bug Reports
 
-Report issues at: https://github.com/yourusername/stash-cl/issues
+Report issues at: https://github.com/glenneth1/stash-cl/issues
 
 ---
 
