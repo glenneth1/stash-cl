@@ -54,7 +54,17 @@
   (:use #:cl)
   (:import-from #:stash-cl/log
                 #:log-action)
-  (:export #:prompt-user-for-action
+  (:export ;; CLOS conflict resolver classes
+           #:conflict-resolver
+           #:interactive-resolver
+           #:auto-skip-resolver
+           #:auto-overwrite-resolver
+           #:auto-abort-resolver
+           #:resolve-conflict
+           ;; Global resolver
+           #:*conflict-resolver*
+           ;; Backward compatible
+           #:prompt-user-for-action
            #:handle-conflict))
 
 (defpackage #:stash-cl/file-ops
@@ -67,14 +77,28 @@
                 #:ensure-config-path)
   (:import-from #:stash-cl/conflict
                 #:handle-conflict)
-  (:export #:move-source-to-target
+  (:export ;; CLOS file operation classes
+           #:file-operation
+           #:operation-path
+           #:execute-operation
+           #:operation-description
+           #:symlink-operation
+           #:operation-source
+           #:mkdir-operation
+           #:move-operation
+           #:operation-destination
+           #:delete-operation
+           ;; File type predicates
+           #:file-is-symlink-p
+           #:file-is-directory-p
+           #:file-is-regular-p
+           ;; Low-level operations
+           #:move-source-to-target
            #:create-symlink
            #:delete-directory
            #:mkdir-p
-           #:execute-operations
-           #:file-is-symlink-p
-           #:file-is-directory-p
-           #:file-is-regular-p))
+           ;; Backward compatible
+           #:execute-operations))
 
 (defpackage #:stash-cl/package-mgmt
   (:use #:cl)
