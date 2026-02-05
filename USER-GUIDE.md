@@ -54,9 +54,8 @@ cd stash-cl
 make
 ```
 
-This creates two files:
-- `./stash` - Shell wrapper script (handles --version and --help)
-- `./stash.bin` - Compressed SBCL executable (~16MB)
+This creates:
+- `./stash` - Compressed standalone executable (~12MB)
 
 ### Installing System-Wide
 
@@ -66,12 +65,12 @@ Use the provided Makefile target:
 sudo make install
 ```
 
-This installs both files to `/usr/local/bin/` and the man page to `/usr/local/share/man/man1/`.
+This installs `stash` to `/usr/local/bin/` and the man page to `/usr/local/share/man/man1/`.
 
 Or manually:
 
 ```bash
-sudo cp stash stash.bin /usr/local/bin/
+sudo cp stash /usr/local/bin/
 sudo cp stash.1 /usr/local/share/man/man1/
 ```
 

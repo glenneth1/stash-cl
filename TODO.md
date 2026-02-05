@@ -278,6 +278,7 @@
 
 ### Current Known Issues
 - [x] ~~Bug #7: Verbosity mode crashes with `-vv`~~ ✅ FIXED
+- [ ] **Bug #8: Restash with overlapping directories** - When restashing a package that shares directories with other packages, the restash may not properly re-add files to unfolded directories. **Workaround**: Use separate unstash (`-D`) and stash commands instead of restash (`-R`).
 - [ ] Need to verify symlink handling on edge cases
 - [ ] Test behavior with permission errors
 - [ ] Test behavior with read-only filesystems

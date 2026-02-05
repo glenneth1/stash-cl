@@ -40,9 +40,8 @@ make compress-max
 sbcl --load build.lisp
 ```
 
-This produces two files:
-- **`stash`** - Shell wrapper script (handles --version and --help)
-- **`stash.bin`** - Compressed executable (~14-16 MB)
+This produces:
+- **`stash`** - Compressed standalone executable (~12 MB)
 
 See [COMPRESSION.md](COMPRESSION.md) for details on compression options and [PACKAGING.md](PACKAGING.md) for distribution guidelines.
 
@@ -54,7 +53,7 @@ sudo make install
 ```
 
 This installs:
-- `stash` and `stash.bin` to `/usr/local/bin/`
+- `stash` to `/usr/local/bin/`
 - Man page to `/usr/local/share/man/man1/`
 
 ### Custom Installation Directory
