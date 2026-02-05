@@ -33,7 +33,8 @@
                           :toplevel #'stash-cl:toplevel-entry
                           :executable t
                           :compression 22
-                          :purify t)
+                          :purify t
+                          :save-runtime-options t)
 
 #-sbcl
 (asdf:make :stash-cl)

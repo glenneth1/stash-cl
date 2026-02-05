@@ -2,7 +2,20 @@
 
 (defpackage #:stash-cl/colors
   (:use #:cl)
-  (:export #:*use-colors*
+  (:export ;; CLOS terminal-style class
+           #:terminal-style
+           #:style-code
+           #:style-name
+           #:apply-style
+           ;; Pre-defined style instances
+           #:*style-red*
+           #:*style-green*
+           #:*style-yellow*
+           #:*style-blue*
+           #:*style-bold*
+           ;; Configuration
+           #:*use-colors*
+           ;; Backward compatible functions
            #:color-red
            #:color-green
            #:color-yellow
@@ -16,9 +29,17 @@
 (defpackage #:stash-cl/log
   (:use #:cl)
   (:import-from #:stash-cl/colors)
-  (:export #:*log-file*
-           #:log-action
-           #:current-timestamp))
+  (:export ;; CLOS logger class
+           #:logger
+           #:logger-log-file
+           #:logger-enabled
+           #:log-message
+           #:current-timestamp
+           ;; Global logger instance
+           #:*logger*
+           ;; Backward compatible
+           #:*log-file*
+           #:log-action))
 
 (defpackage #:stash-cl/paths
   (:use #:cl)
