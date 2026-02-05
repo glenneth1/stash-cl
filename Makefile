@@ -4,10 +4,13 @@
 
 all: build
 
-build:
+# File target - only rebuild if stash doesn't exist
+stash:
 	@echo "Building stash-cl executable with compression..."
 	sbcl --non-interactive --load build.lisp
 	@echo "Build complete! Use ./stash or compress with 'make compress'"
+
+build: stash
 
 # Apply UPX compression (requires upx to be installed)
 compress: build
@@ -67,7 +70,7 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 MANDIR = $(PREFIX)/share/man/man1
 
-install: build
+install: stash
 	@echo "Installing stash to $(BINDIR)..."
 	install -d $(BINDIR)
 	install -m 755 stash $(BINDIR)/
