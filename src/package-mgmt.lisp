@@ -2,12 +2,67 @@
 
 (in-package #:stash-cl/package-mgmt)
 
-(defstruct package-info
-  "Information about a package."
-  name
-  path
-  target
-  ignore-patterns)
+;;; CLOS Stash Package Class
+
+(defclass stash-package ()
+  ((name :initarg :name
+         :accessor stash-package-name
+         :type string
+         :documentation "Name of the package")
+   (path :initarg :path
+         :accessor stash-package-path
+         :type string
+         :documentation "Path to the package directory")
+   (target :initarg :target
+           :accessor stash-package-target
+           :type string
+           :documentation "Target directory for stashing")
+   (ignore-patterns :initarg :ignore-patterns
+                    :initform nil
+                    :accessor stash-package-ignore-patterns
+                    :type list
+                    :documentation "List of ignore patterns for this package"))
+  (:documentation "Represents a stash package with its configuration."))
+
+;;; Generic functions for stash-package
+
+(defgeneric load-ignore-patterns (package)
+  (:documentation "Load ignore patterns for PACKAGE from config files."))
+
+(defmethod load-ignore-patterns ((pkg stash-package))
+  "Load ignore patterns from .stash-local-ignore and .stash-global-ignore."
+  (setf (stash-package-ignore-patterns pkg)
+        (read-ignore-patterns (stash-package-path pkg))))
+
+;;; Backward compatibility - package-info struct accessors
+
+(defun make-package-info (&key name path target ignore-patterns)
+  "Create a stash-package instance (backward compatible constructor)."
+  (make-instance 'stash-package
+                 :name name
+                 :path path
+                 :target target
+                 :ignore-patterns ignore-patterns))
+
+(defun package-info-p (obj)
+  "Check if OBJ is a stash-package (backward compatible predicate)."
+  (typep obj 'stash-package))
+
+(defun package-info-name (pkg)
+  "Backward compatible accessor for name."
+  (stash-package-name pkg))
+
+(defun package-info-path (pkg)
+  "Backward compatible accessor for path."
+  (stash-package-path pkg))
+
+(defun package-info-target (pkg)
+  "Backward compatible accessor for target."
+  (stash-package-target pkg))
+
+(defun package-info-ignore-patterns (pkg)
+  "Backward compatible accessor for ignore-patterns."
+  (stash-package-ignore-patterns pkg))
 
 (defun read-ignore-patterns (package-path)
   "Read ignore patterns from .stash-local-ignore and .stash-global-ignore files."

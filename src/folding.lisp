@@ -2,23 +2,83 @@
 
 (in-package #:stash-cl/folding)
 
-;;; Folding state and configuration
+;;; CLOS Folding Context Class
 
+(defclass folding-context ()
+  ((enabled :initarg :enabled
+            :initform t
+            :accessor folding-enabled
+            :type boolean
+            :documentation "Whether tree folding is enabled")
+   (verbosity :initarg :verbosity
+              :initform 1
+              :accessor folding-verbosity
+              :type integer
+              :documentation "Verbosity level: 0=silent, 1=basic, 2=detailed, 3=debug")
+   (ignore-patterns :initarg :ignore-patterns
+                    :initform nil
+                    :accessor folding-ignore-patterns
+                    :type list
+                    :documentation "Current ignore patterns for the package being stashed")
+   ;; Statistics
+   (directories-folded :initform 0
+                       :accessor folding-directories-folded
+                       :type integer)
+   (directories-unfolded :initform 0
+                         :accessor folding-directories-unfolded
+                         :type integer)
+   (directories-kept-folded :initform 0
+                            :accessor folding-directories-kept-folded
+                            :type integer)
+   (file-symlinks-created :initform 0
+                          :accessor folding-file-symlinks-created
+                          :type integer))
+  (:documentation "Context for folding operations including configuration and statistics."))
+
+;;; Global context instance and backward-compatible special variables
+
+(defparameter *folding-context* (make-instance 'folding-context)
+  "Current folding context.")
+
+;; Backward compatibility - these delegate to the context
 (defparameter *folding-enabled* t
   "Whether tree folding is enabled. Set to NIL for --no-folding mode.")
 
 (defparameter *folding-verbosity* 1
   "Verbosity level for folding operations. 0=silent, 1=basic, 2=detailed, 3=debug")
 
-(defstruct folding-stats
-  "Statistics about folding operations."
-  (directories-folded 0 :type integer)
-  (directories-unfolded 0 :type integer)
-  (directories-kept-folded 0 :type integer)
-  (file-symlinks-created 0 :type integer))
+;; Legacy struct accessors for backward compatibility
+(defun folding-stats-directories-folded (ctx)
+  "Backward compatible accessor."
+  (folding-directories-folded ctx))
 
-(defparameter *folding-stats* (make-folding-stats)
-  "Current folding statistics.")
+(defun (setf folding-stats-directories-folded) (value ctx)
+  "Backward compatible setter."
+  (setf (folding-directories-folded ctx) value))
+
+(defun folding-stats-directories-unfolded (ctx)
+  "Backward compatible accessor."
+  (folding-directories-unfolded ctx))
+
+(defun (setf folding-stats-directories-unfolded) (value ctx)
+  "Backward compatible setter."
+  (setf (folding-directories-unfolded ctx) value))
+
+(defun folding-stats-directories-kept-folded (ctx)
+  "Backward compatible accessor."
+  (folding-directories-kept-folded ctx))
+
+(defun (setf folding-stats-directories-kept-folded) (value ctx)
+  "Backward compatible setter."
+  (setf (folding-directories-kept-folded ctx) value))
+
+(defun folding-stats-file-symlinks-created (ctx)
+  "Backward compatible accessor."
+  (folding-file-symlinks-created ctx))
+
+(defun (setf folding-stats-file-symlinks-created) (value ctx)
+  "Backward compatible setter."
+  (setf (folding-file-symlinks-created ctx) value))
 
 ;;; Core folding detection
 
@@ -186,7 +246,7 @@ Returns T on success, NIL on failure."
   
   ;; Create symlink (skip conflict checking since we've already validated and planned removal)
   (stash-cl/task-planner:plan-create-link target-path package-path :check-conflicts nil)
-  (incf (folding-stats-directories-folded *folding-stats*))
+  (incf (folding-stats-directories-folded *folding-context*))
   t)
 
 (defun unfold-directory (target-path package-path &key minimal)
@@ -219,7 +279,7 @@ Returns T on success, NIL on failure."
         (unfold-contents-minimal target-path package-path)
         (unfold-contents-full target-path package-path)))
   
-  (incf (folding-stats-directories-unfolded *folding-stats*))
+  (incf (folding-stats-directories-unfolded *folding-context*))
   t)
 
 (defun unfold-contents-minimal (target-path package-path)
@@ -238,7 +298,7 @@ Returns T on success, NIL on failure."
               (fold-directory target-entry package-entry)
               (when (>= *folding-verbosity* 3)
                 (format t "    ✓ Keeping ~A folded~%" target-entry))
-              (incf (folding-stats-directories-kept-folded *folding-stats*)))
+              (incf (folding-stats-directories-kept-folded *folding-context*)))
             ;; Need to descend further
             (stash-directory-contents target-entry package-entry))))))
 
@@ -263,7 +323,7 @@ Used when unfolding to preserve original package content."
         (unless (and *current-ignore-patterns*
                      (stash-cl/package-mgmt:should-ignore-p file-name *current-ignore-patterns*))
           (stash-cl/task-planner:plan-create-link target-file package-file :check-conflicts nil)
-          (incf (folding-stats-file-symlinks-created *folding-stats*)))))
+          (incf (folding-stats-file-symlinks-created *folding-context*)))))
     
     ;; Handle subdirectories - skip conflict checking, just fold
     (dolist (subdir subdirs)
@@ -276,7 +336,7 @@ Used when unfolding to preserve original package content."
                      (stash-cl/package-mgmt:should-ignore-p subdir-name *current-ignore-patterns*))
           ;; Just fold without conflict checking
           (stash-cl/task-planner:plan-create-link target-subdir package-subdir :check-conflicts nil)
-          (incf (folding-stats-directories-folded *folding-stats*)))))))
+          (incf (folding-stats-directories-folded *folding-context*)))))))
 
 (defun stash-directory-contents (target-dir package-dir)
   "Stash contents of PACKAGE-DIR into TARGET-DIR.
@@ -316,7 +376,7 @@ This is called during unfolding or when we can't fold."
         (unless (and *current-ignore-patterns*
                      (stash-cl/package-mgmt:should-ignore-p file-name *current-ignore-patterns*))
           (stash-cl/task-planner:plan-create-link target-file package-file)
-          (incf (folding-stats-file-symlinks-created *folding-stats*)))))
+          (incf (folding-stats-file-symlinks-created *folding-context*)))))
     
     ;; Handle subdirectories
     (dolist (subdir subdirs)
@@ -401,19 +461,21 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
       ;; Create directory symlink
       (stash-cl/task-planner:plan-create-link target-path link-target)
       
-      (incf (folding-stats-directories-folded *folding-stats*))
+      (incf (folding-stats-directories-folded *folding-context*))
       t)))
 
 ;;; Folding statistics and reporting (ENHANCEMENT)
 
 (defun reset-folding-stats ()
-  "Reset folding statistics."
-  (setf *folding-stats* (make-folding-stats)))
+  "Reset folding statistics by creating a fresh context."
+  (setf *folding-context* (make-instance 'folding-context
+                                         :enabled *folding-enabled*
+                                         :verbosity *folding-verbosity*)))
 
 (defun print-folding-stats ()
   "Print folding statistics (ENHANCEMENT)."
   (when (>= *folding-verbosity* 1)
-    (let ((stats *folding-stats*))
+    (let ((stats *folding-context*))
       (format t "~%Folding Summary:~%")
       (format t "  Directories folded: ~D~%" 
               (folding-stats-directories-folded stats))
@@ -430,8 +492,10 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
 
 ;;; High-level folding interface
 
+;; Legacy variable - now stored in folding-context
 (defparameter *current-ignore-patterns* nil
-  "Ignore patterns for the current package being stashed.")
+  "Ignore patterns for the current package being stashed.
+ Deprecated: use (folding-ignore-patterns *folding-context*) instead.")
 
 (defun stash-package-with-folding (package-path target-path &key cli-patterns)
   "Stash PACKAGE-PATH to TARGET-PATH with intelligent folding.
@@ -510,7 +574,7 @@ CLI-PATTERNS are additional ignore patterns from command line."
              (stash-cl/task-planner:plan-remove-link target-subdir)
              (when (>= *folding-verbosity* 2)
                (format t "  ✓ Removing directory symlink ~A~%" target-subdir))
-             (incf (folding-stats-directories-unfolded *folding-stats*)))
+             (incf (folding-stats-directories-unfolded *folding-context*)))
             
             ;; If target is a real directory, recurse into it
             ((stash-cl/file-ops:file-is-directory-p target-subdir)

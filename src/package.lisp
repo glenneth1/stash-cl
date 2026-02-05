@@ -57,12 +57,21 @@
 
 (defpackage #:stash-cl/package-mgmt
   (:use #:cl)
-  (:export #:make-package-info
+  (:export ;; CLOS stash-package class
+           #:stash-package
+           #:stash-package-name
+           #:stash-package-path
+           #:stash-package-target
+           #:stash-package-ignore-patterns
+           #:load-ignore-patterns
+           ;; Backward compatible accessors
+           #:make-package-info
            #:package-info-p
            #:package-info-name
            #:package-info-path
            #:package-info-target
            #:package-info-ignore-patterns
+           ;; Functions
            #:read-ignore-patterns
            #:should-ignore-p))
 
@@ -89,7 +98,8 @@
                 #:create-symlink
                 #:delete-directory
                 #:mkdir-p)
-  (:export #:init-planner
+  (:export ;; Planner functions
+           #:init-planner
            #:reset-planner
            #:add-task
            #:find-dir-task
@@ -108,15 +118,36 @@
            #:plan-create-dir
            #:plan-remove-dir
            #:plan-move-file
+           ;; CLOS task classes
            #:task
-           #:make-task
+           #:create-task
+           #:remove-task
+           #:link-task
+           #:dir-task
+           #:create-link-task
+           #:remove-link-task
+           #:create-dir-task
+           #:remove-dir-task
+           #:move-task
+           ;; Generic functions
+           #:execute-task
+           #:validate-task
            #:task-action
            #:task-type
            #:task-path
            #:task-source
            #:task-dest
-           #:planner-state
+           ;; CLOS planner class
+           #:task-planner
+           #:planner-tasks
+           #:planner-conflicts
+           #:planner-stash-path
+           #:planner-target-dir
+           ;; Backward compatibility
+           #:planner-state-tasks
+           #:planner-state-conflicts
            #:*planner-state*
+           ;; Conditions
            #:conflict-error
            #:conflict-error-message
            #:conflict-error-path))
@@ -134,8 +165,20 @@
                 #:add-conflict)
   (:import-from #:alexandria
                 #:starts-with-subseq)
-  (:export #:*folding-enabled*
+  (:export ;; CLOS folding context class
+           #:folding-context
+           #:*folding-context*
+           #:folding-enabled
+           #:folding-verbosity
+           #:folding-ignore-patterns
+           #:folding-directories-folded
+           #:folding-directories-unfolded
+           #:folding-directories-kept-folded
+           #:folding-file-symlinks-created
+           ;; Backward compatible variables
+           #:*folding-enabled*
            #:*folding-verbosity*
+           ;; Functions
            #:can-fold-directory-p
            #:fold-directory
            #:unfold-directory
