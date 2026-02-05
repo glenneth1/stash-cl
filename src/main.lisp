@@ -81,7 +81,21 @@
   (:name :recursive
    :description "Recursively process directories"
    :short #\r
-   :long "recursive"))
+   :long "recursive")
+  
+  (:name :import
+   :description "Import existing file/directory into a new package"
+   :short #\i
+   :long "import"
+   :arg-parser #'identity
+   :meta-var "PATH")
+  
+  (:name :package
+   :description "Package name (used with --import)"
+   :short #\p
+   :long "package"
+   :arg-parser #'identity
+   :meta-var "NAME"))
 
 ;;; Helper Functions
 
@@ -268,6 +282,88 @@ Scans target directory and moves non-symlink files that would conflict into the 
             (handle-stash-with-folding package stash-dir target-dir :simulate simulate)))
         (format t "No packages found in ~A~%" stash-dir))))
 
+(defun handle-import (source-path package-name stash-dir target-dir &key simulate)
+  "Import SOURCE-PATH into a new package PACKAGE-NAME.
+Creates the package directory structure mirroring the path relative to TARGET-DIR,
+moves the source into the package, and creates a symlink back."
+  
+  ;; Expand and normalize paths
+  (let* ((source-abs (namestring (truename (expand-home source-path))))
+         (target-abs (namestring (truename (expand-home target-dir))))
+         (stash-abs (expand-home stash-dir)))
+    
+    ;; Ensure target-abs ends with /
+    (unless (char= (char target-abs (1- (length target-abs))) #\/)
+      (setf target-abs (concatenate 'string target-abs "/")))
+    
+    ;; Check source exists
+    (unless (probe-file source-abs)
+      (format t "~A~%" (stash-cl/colors:format-error 
+                        (format nil "Source does not exist: ~A" source-path)))
+      (return-from handle-import nil))
+    
+    ;; Check source is under target directory
+    (unless (and (>= (length source-abs) (length target-abs))
+                 (string= (subseq source-abs 0 (length target-abs)) target-abs))
+      (format t "~A~%" (stash-cl/colors:format-error 
+                        (format nil "Source ~A is not under target directory ~A" source-path target-dir)
+                        "The file/directory must be inside the target directory"))
+      (return-from handle-import nil))
+    
+    ;; Compute relative path from target (strip trailing slash for consistency)
+    (let* ((rel-path (string-right-trim "/" (subseq source-abs (length target-abs))))
+           (source-clean (string-right-trim "/" source-abs))
+           ;; Package destination: stash-dir/package-name/rel-path
+           (package-dir (concatenate 'string stash-abs "/" package-name "/"))
+           (dest-path (concatenate 'string package-dir rel-path)))
+      
+      (format t "~%Importing into package: ~A~%" package-name)
+      (format t "  Source: ~A~%" source-clean)
+      (format t "  Relative path: ~A~%" rel-path)
+      (format t "  Package location: ~A~%" dest-path)
+      
+      (if simulate
+          (progn
+            (format t "~%SIMULATION MODE - No changes will be made~%")
+            (format t "  Would create: ~A~%" dest-path)
+            (format t "  Would move: ~A -> ~A~%" source-clean dest-path)
+            (format t "  Would create symlink: ~A -> ~A~%" source-clean dest-path))
+          (progn
+            ;; Create package directory structure (parent of dest-path only)
+            ;; For dest /tmp/test-stash/testapp/.config/testapp, create /tmp/test-stash/testapp/.config/
+            ;; We need to find the parent directory of the final component
+            (let* ((last-slash (position #\/ dest-path :from-end t))
+                   (parent-path (when last-slash (subseq dest-path 0 (1+ last-slash)))))
+              (when parent-path
+                (ensure-directories-exist parent-path)
+                (format t "  Created parent directory: ~A~%" parent-path)))
+            
+            ;; Move source to package
+            (let ((is-dir (stash-cl/file-ops:file-is-directory-p source-clean)))
+              (if is-dir
+                  ;; For directories, use mv command
+                  (progn
+                    (uiop:run-program (list "mv" source-clean dest-path))
+                    (format t "  ~A ~A~%" 
+                            (stash-cl/colors:color-green "Moved directory:")
+                            rel-path))
+                  ;; For files
+                  (progn
+                    (uiop:rename-file-overwriting-target source-clean dest-path)
+                    (format t "  ~A ~A~%" 
+                            (stash-cl/colors:color-green "Moved file:")
+                            rel-path)))
+              
+              ;; Create symlink directly (source is now gone, dest-path has the content)
+              (format t "~%Creating symlink...~%")
+              (stash-cl/file-ops:create-symlink source-clean dest-path)
+              (format t "  ~A ~A -> ~A~%" 
+                      (stash-cl/colors:color-green "Created symlink:")
+                      rel-path dest-path))))
+      
+      (format t "~%Import complete!~%")
+      t)))
+
 ;;; Main Entry Point
 
 (defun main (&optional (argv nil))
@@ -294,6 +390,8 @@ Scans target directory and moves non-symlink files that would conflict into the 
                  (restash (getf options :restash))
                  (deploy (getf options :deploy))
                  (adopt (getf options :adopt))
+                 (import-path (getf options :import))
+                 (package-name (getf options :package))
                  ;; Count verbose flags manually since unix-opts doesn't handle -vv properly
                  (verbosity (count :verbose options))
                  (stash-dir (getf options :dir (namestring (uiop:getcwd))))
@@ -315,6 +413,14 @@ Scans target directory and moves non-symlink files that would conflict into the 
             (let ((target-dir (resolve-target-path target stash-dir)))
               
               (cond
+                ;; Import mode - import existing file/directory into a package
+                (import-path
+                 (if package-name
+                     (handle-import import-path package-name stash-dir target-dir :simulate simulate)
+                     (format t "~A~%" (stash-cl/colors:format-error 
+                                       "Package name required for import" 
+                                       "Try: stash --import ~/.bashrc --package bash"))))
+                
                 ;; Deploy mode
                 (deploy
                  (handle-deploy stash-dir target-dir :simulate simulate))

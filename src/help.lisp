@@ -15,6 +15,8 @@ Options:
   -d, --deploy          Deploy mode
   -D, --delete          Unstash packages
   -R, --restash         Restash packages (unstash then stash)
+  -i, --import=PATH     Import existing file/directory into a package
+  -p, --package=NAME    Package name (used with --import)
   -n, --simulate        Simulation mode (dry-run)
   --adopt               Adopt existing files into package
   --ignore=REGEX        Ignore pattern (can be used multiple times)
@@ -31,6 +33,10 @@ Examples:
   stash -vv perl                        # Stash with verbose output
   stash --adopt emacs                   # Adopt existing files
   stash --ignore='.*\\.bak' vim         # Ignore .bak files
+
+Import (create package from existing files):
+  stash --import ~/.bashrc --package bash --dir ~/.files --target ~
+  stash -i ~/.config/nvim -p neovim --dir ~/.files --target ~
 "))
 
 (defun display-version ()

@@ -85,9 +85,25 @@ stash -D emacs
 
 # Restash (update after changes)
 stash -R emacs
+
+# Import existing files into a new package
+stash --import ~/.bashrc --package bash --dir ~/.dotfiles --target ~
+stash -i ~/.config/nvim -p neovim --dir ~/.dotfiles --target ~
 ```
 
 ### Common Workflows
+
+#### Importing Existing Dotfiles
+```bash
+# Import a single file into a package
+stash --import ~/.bashrc --package bash --dir ~/.dotfiles --target ~
+
+# Import a .config directory into a package
+stash --import ~/.config/qutebrowser --package qutebrowser --dir ~/.dotfiles --target ~
+
+# Simulate import first
+stash -n --import ~/.vimrc --package vim --dir ~/.dotfiles --target ~
+```
 
 #### Managing Dotfiles
 ```bash

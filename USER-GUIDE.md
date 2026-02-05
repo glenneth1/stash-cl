@@ -222,6 +222,23 @@ stash -R vim                    # Restash vim
 stash --restash vim bash        # Restash multiple packages
 ```
 
+#### Import (Create Package from Existing Files)
+
+```bash
+stash -i PATH -p NAME [OPTIONS]
+stash --import PATH --package NAME [OPTIONS]
+```
+
+Import an existing file or directory into a new package. This moves the
+file/directory into the package and creates a symlink back to the original location.
+
+**Examples:**
+```bash
+stash -i ~/.bashrc -p bash --dir ~/.dotfiles --target ~
+stash --import ~/.config/nvim --package neovim --dir ~/.dotfiles --target ~
+stash -n -i ~/.vimrc -p vim --dir ~/.dotfiles --target ~  # Simulate first
+```
+
 #### Deploy (Install All)
 
 ```bash
@@ -536,10 +553,27 @@ Or use restash: `stash -R vim`
 
 ## Examples
 
-### Example 1: Basic Dotfiles Setup
+### Example 1: Import Existing Dotfiles
 
 ```bash
-# Create package structure
+# Import your existing .bashrc into a package
+stash --import ~/.bashrc --package bash --dir ~/dotfiles --target ~
+
+# Import a .config directory
+stash --import ~/.config/nvim --package neovim --dir ~/dotfiles --target ~
+
+# Verify - original location is now a symlink
+ls -la ~/.bashrc
+# lrwxrwxrwx ... .bashrc -> /home/user/dotfiles/bash/.bashrc
+
+# The file is now in the package
+cat ~/dotfiles/bash/.bashrc
+```
+
+### Example 2: Basic Dotfiles Setup (Manual)
+
+```bash
+# Create package structure manually
 mkdir -p ~/dotfiles/vim/.vim
 echo 'set number' > ~/dotfiles/vim/.vimrc
 
@@ -552,7 +586,7 @@ ls -la ~/.vimrc
 # lrwxrwxrwx ... .vimrc -> /home/user/dotfiles/vim/.vimrc
 ```
 
-### Example 2: Multiple Packages
+### Example 3: Multiple Packages
 
 ```bash
 # Create multiple packages

@@ -38,6 +38,15 @@ then stashing again. Useful for updating packages after changes.
 .B \-d, \-\-deploy
 Deploy mode: stash all packages found in the stash directory. This is
 useful for initial setup on a new machine.
+.TP
+.BI "\-i, \-\-import=" PATH
+Import an existing file or directory into a new package. This moves the
+file/directory into the package directory structure and creates a symlink
+back to the original location. Must be used with \fB\-\-package\fR.
+.TP
+.BI "\-p, \-\-package=" NAME
+Specify the package name when using \fB\-\-import\fR. The imported file
+or directory will be placed in a package with this name.
 .SS "Directory Options"
 .TP
 .BI "\-\-dir=" DIR
@@ -185,6 +194,22 @@ Get detailed information about folding decisions:
 .nf
 .RS
 stash \-vv emacs
+.RE
+.fi
+.SS "Import Existing Files"
+Import an existing file into a new package:
+.PP
+.nf
+.RS
+stash \-\-import ~/.bashrc \-\-package bash \-\-dir ~/.dotfiles \-\-target ~
+.RE
+.fi
+.SS "Import a Config Directory"
+Import an existing .config directory into a package:
+.PP
+.nf
+.RS
+stash \-i ~/.config/nvim \-p neovim \-\-dir ~/.dotfiles \-\-target ~
 .RE
 .fi
 .SS "Unstash a Package"
