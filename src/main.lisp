@@ -236,21 +236,21 @@ Scans target directory and moves non-symlink files that would conflict into the 
   
   (format t "~%Restashing package: ~A~%" package)
   
-  ;; Initialize planner
-  (init-planner stash-dir target-dir)
-  
   ;; Resolve package path
   (let ((package-path (resolve-package-path package stash-dir)))
     
-    ;; Phase 1: Unstash
+    ;; Phase 1: Unstash - plan and execute immediately
+    ;; This ensures the filesystem state is correct for the stash phase
     (format t "~%Phase 1: Unstashing...~%")
+    (init-planner stash-dir target-dir)
     (unstash-package-with-refolding package-path target-dir)
+    (execute-all-tasks :simulate simulate)
     
-    ;; Phase 2: Stash
+    ;; Phase 2: Stash - plan and execute with fresh planner
+    ;; Now the filesystem reflects the unstashed state
     (format t "~%Phase 2: Stashing...~%")
+    (init-planner stash-dir target-dir)
     (stash-package-with-folding package-path target-dir)
-    
-    ;; Execute all tasks
     (execute-all-tasks :simulate simulate)
     
     ;; Show stats
