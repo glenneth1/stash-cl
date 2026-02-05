@@ -2,11 +2,35 @@
 
 (in-package #:stash-cl/tree)
 
-(defstruct tree-node
-  "Node in a directory tree."
-  path
-  type  ; :file or :directory
-  children)
+;;; CLOS Tree Node Class
+
+(defclass tree-node ()
+  ((path :initarg :path
+         :accessor tree-node-path
+         :type string
+         :documentation "Path to the file or directory")
+   (node-type :initarg :type
+              :accessor tree-node-type
+              :type keyword
+              :documentation "Type of node: :file or :directory")
+   (children :initarg :children
+             :initform nil
+             :accessor tree-node-children
+             :type list
+             :documentation "Child nodes for directories"))
+  (:documentation "Node in a directory tree."))
+
+;;; Backward compatibility constructor
+
+(defun make-tree-node (&key path type children)
+  "Create a tree-node instance (backward compatible constructor)."
+  (make-instance 'tree-node :path path :type type :children children))
+
+(defun tree-node-p (obj)
+  "Check if OBJ is a tree-node."
+  (typep obj 'tree-node))
+
+;;; Tree analysis functions
 
 (defun analyze-tree (package-info)
   "Analyze the directory tree of PACKAGE-INFO."
@@ -22,7 +46,8 @@
     (dolist (file (uiop:directory-files dir-path))
       (let ((filename (file-namestring file)))
         (unless (should-ignore-p filename ignore-patterns)
-          (push (make-tree-node :path (namestring file)
+          (push (make-instance 'tree-node
+                               :path (namestring file)
                                :type :file
                                :children nil)
                 children))))
@@ -34,7 +59,8 @@
           (push (analyze-directory (namestring subdir) ignore-patterns)
                 children))))
     
-    (make-tree-node :path dir-path
+    (make-instance 'tree-node
+                   :path dir-path
                    :type :directory
                    :children (nreverse children))))
 

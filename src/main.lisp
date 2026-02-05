@@ -12,6 +12,7 @@
   
   (:name :version
    :description "Display version information"
+   :short #\V
    :long "version")
   
   (:name :source

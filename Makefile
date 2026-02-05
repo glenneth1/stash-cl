@@ -6,30 +6,14 @@ all: build
 
 build:
 	@echo "Building stash-cl executable with compression..."
-	sbcl --load build.lisp
-	@echo "Creating wrapper script..."
-	@echo '#!/bin/bash' > stash
-	@echo '# Wrapper for stash to handle --version and --help' >> stash
-	@echo 'SCRIPT_DIR="$$(cd "$$(dirname "$${BASH_SOURCE[0]}")" && pwd)"' >> stash
-	@echo 'STASH_BIN="$$SCRIPT_DIR/stash.bin"' >> stash
-	@echo 'for arg in "$$@"; do' >> stash
-	@echo '  if [ "$$arg" = "--version" ]; then' >> stash
-	@echo '    echo "stash-cl version 0.1.0"' >> stash
-	@echo '    echo "Common Lisp rewrite of GNU Stow replacement"' >> stash
-	@echo '    exit 0' >> stash
-	@echo '  elif [ "$$arg" = "--help" ]; then' >> stash
-	@echo '    exec "$$STASH_BIN" -h' >> stash
-	@echo '  fi' >> stash
-	@echo 'done' >> stash
-	@echo 'exec "$$STASH_BIN" "$$@"' >> stash
-	@chmod +x stash
+	sbcl --non-interactive --load build.lisp
 	@echo "Build complete! Use ./stash or compress with 'make compress'"
 
 # Apply UPX compression (requires upx to be installed)
 compress: build
-	@echo "Applying UPX compression to stash.bin..."
+	@echo "Applying UPX compression to stash..."
 	@if command -v upx >/dev/null 2>&1; then \
-		upx --best --lzma stash.bin; \
+		upx --best --lzma stash; \
 	else \
 		echo "Error: UPX not found. Install with: sudo apt-get install upx-ucl (Debian/Ubuntu) or brew install upx (macOS)"; \
 		exit 1; \
@@ -37,9 +21,9 @@ compress: build
 
 # Apply maximum UPX compression (slowest but smallest)
 compress-max: build
-	@echo "Applying maximum UPX compression to stash.bin (this may take a while)..."
+	@echo "Applying maximum UPX compression to stash (this may take a while)..."
 	@if command -v upx >/dev/null 2>&1; then \
-		upx --ultra-brute --lzma stash.bin; \
+		upx --ultra-brute --lzma stash; \
 	else \
 		echo "Error: UPX not found. Install with: sudo apt-get install upx-ucl (Debian/Ubuntu) or brew install upx (macOS)"; \
 		exit 1; \
@@ -71,7 +55,7 @@ install-upx:
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f stash stash.bin stash.bin.upx.backup
+	rm -f stash stash.upx.backup
 	rm -rf ~/.cache/common-lisp/sbcl-*-linux-x64/home/$(USER)/SourceCode/stash-cl/
 
 test: build
@@ -87,7 +71,6 @@ install: build
 	@echo "Installing stash to $(BINDIR)..."
 	install -d $(BINDIR)
 	install -m 755 stash $(BINDIR)/
-	install -m 755 stash.bin $(BINDIR)/
 	@echo "Installing man page to $(MANDIR)..."
 	install -d $(MANDIR)
 	install -m 644 stash.1 $(MANDIR)/
@@ -103,7 +86,6 @@ install-man:
 uninstall:
 	@echo "Uninstalling stash..."
 	rm -f $(BINDIR)/stash
-	rm -f $(BINDIR)/stash.bin
 	rm -f $(MANDIR)/stash.1
 	@echo "Uninstall complete"
 

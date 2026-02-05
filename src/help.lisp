@@ -21,7 +21,7 @@ Options:
   --no-folding          Disable tree folding
   -v, --verbose         Increase verbosity (-v, -vv, -vvv)
   -h, --help            Display this help
-  --version             Display version
+  -V, --version         Display version
 
 Examples:
   cd ~/.dotfiles && stash emacs         # Stash emacs package

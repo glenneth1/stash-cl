@@ -424,15 +424,18 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
   (unless (stash-cl/file-ops:file-is-directory-p target-path)
     (return-from can-refold-directory-p nil))
   
-  ;; Get all entries in the directory
-  (let ((entries (uiop:directory-files target-path)))
+  ;; Get all entries in the directory (both files and subdirectories)
+  (let ((files (uiop:directory-files target-path))
+        (subdirs (uiop:subdirectories target-path)))
     
     ;; Can refold if:
-    ;; 1. Directory has exactly one entry
-    ;; 2. That entry is a symlink
-    ;; 3. The symlink points to a stash package
-    (and (= (length entries) 1)
-         (let ((entry-path (namestring (first entries))))
+    ;; 1. Directory has exactly one subdirectory symlink and no files
+    ;; 2. That subdirectory symlink points to a stash package
+    ;; Note: We only refold directories, not files - a single file symlink
+    ;; should stay as-is, not fold the parent directory
+    (and (null files)
+         (= (length subdirs) 1)
+         (let ((entry-path (namestring (first subdirs))))
            (and (stash-cl/file-ops:file-is-symlink-p entry-path)
                 (symlink-points-to-stash-p entry-path))))))
 
@@ -447,8 +450,8 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
   "Refold TARGET-PATH if possible after unstashing (ENHANCEMENT)."
   
   (when (can-refold-directory-p target-path)
-    (let* ((entries (uiop:directory-files target-path))
-           (single-entry (namestring (first entries)))
+    (let* ((subdirs (uiop:subdirectories target-path))
+           (single-entry (namestring (first subdirs)))
            (link-target (read-symlink single-entry)))
       
       (when (>= *folding-verbosity* 2)

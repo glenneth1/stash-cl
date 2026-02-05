@@ -84,11 +84,15 @@
   (:import-from #:stash-cl/file-ops
                 #:file-is-symlink-p
                 #:file-is-directory-p)
-  (:export #:make-tree-node
-           #:tree-node-p
+  (:export ;; CLOS tree-node class
+           #:tree-node
            #:tree-node-path
            #:tree-node-type
            #:tree-node-children
+           ;; Backward compatible
+           #:make-tree-node
+           #:tree-node-p
+           ;; Functions
            #:analyze-tree
            #:plan-operations))
 
