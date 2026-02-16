@@ -19,10 +19,6 @@ quicklisp/
 \#*\#
 .\#*
 
-# IDE
-.vscode/
-.idea/
-
 # OS files
 .DS_Store
 Thumbs.db
