@@ -79,6 +79,26 @@
 (defun (setf folding-stats-file-symlinks-created) (value ctx)
   "Backward compatible setter."
   (setf (folding-file-symlinks-created ctx) value))
+;;; Dynamic variables for ignore/defer/override patterns
+
+(defparameter *current-ignore-patterns* nil
+  "Ignore patterns for the current package being stashed.")
+
+(defparameter *current-defer-patterns* nil
+  "Defer patterns for the current stashing operation.
+Files matching these patterns are skipped during stashing.")
+
+(defparameter *current-override-patterns* nil
+  "Override patterns for the current stashing operation.
+Files matching these patterns are force-included even if they match ignore patterns.")
+
+(defun file-should-be-skipped-p (filename)
+  "Check if FILENAME should be skipped during stashing.
+A file is skipped if it matches an ignore pattern or a defer pattern,
+unless it matches an override pattern (which forces inclusion)."
+  (let ((all-patterns (append *current-ignore-patterns* *current-defer-patterns*)))
+    (stash-cl/package-mgmt:should-ignore-with-overrides-p
+     filename all-patterns *current-override-patterns*)))
 
 ;;; Core folding detection
 
@@ -129,13 +149,13 @@ Returns T if the directory can be folded, NIL otherwise."
       ;; Check files in this directory
       (dolist (file (uiop:directory-files dir-path-with-slash))
         (let ((filename (file-namestring file)))
-          (when (stash-cl/package-mgmt:should-ignore-p filename patterns)
+          (when (file-should-be-skipped-p filename)
             (return-from directory-has-ignored-files-p t))))
       ;; Check subdirectories recursively
       (dolist (subdir (uiop:subdirectories dir-path-with-slash))
         (let ((dirname (car (last (pathname-directory subdir)))))
           ;; Check if directory itself should be ignored
-          (when (stash-cl/package-mgmt:should-ignore-p dirname patterns)
+          (when (file-should-be-skipped-p dirname)
             (return-from directory-has-ignored-files-p t))
           ;; Recursively check subdirectory contents
           (when (directory-has-ignored-files-p (namestring subdir) patterns)
@@ -319,9 +339,8 @@ Used when unfolding to preserve original package content."
              (file-name (file-namestring file-path))
              (target-file (concatenate 'string target-dir "/" file-name))
              (package-file file-path))
-        ;; Check ignore patterns even when preserving content
-        (unless (and *current-ignore-patterns*
-                     (stash-cl/package-mgmt:should-ignore-p file-name *current-ignore-patterns*))
+        ;; Check if file should be skipped (ignore + defer, minus override)
+        (unless (file-should-be-skipped-p file-name)
           (stash-cl/task-planner:plan-create-link target-file package-file :check-conflicts nil)
           (incf (folding-stats-file-symlinks-created *folding-context*)))))
     
@@ -331,9 +350,8 @@ Used when unfolding to preserve original package content."
              (subdir-name (file-namestring (string-right-trim "/" subdir-path)))
              (target-subdir (concatenate 'string target-dir "/" subdir-name))
              (package-subdir subdir-path))
-        ;; Check ignore patterns even when preserving content
-        (unless (and *current-ignore-patterns*
-                     (stash-cl/package-mgmt:should-ignore-p subdir-name *current-ignore-patterns*))
+        ;; Check if directory should be skipped
+        (unless (file-should-be-skipped-p subdir-name)
           ;; Just fold without conflict checking
           (stash-cl/task-planner:plan-create-link target-subdir package-subdir :check-conflicts nil)
           (incf (folding-stats-directories-folded *folding-context*)))))))
@@ -372,9 +390,8 @@ This is called during unfolding or when we can't fold."
              (file-name (file-namestring file-path))
              (target-file (concatenate 'string target-dir "/" file-name))
              (package-file file-path))
-        ;; Check if file should be ignored
-        (unless (and *current-ignore-patterns*
-                     (stash-cl/package-mgmt:should-ignore-p file-name *current-ignore-patterns*))
+        ;; Check if file should be skipped (ignore + defer, minus override)
+        (unless (file-should-be-skipped-p file-name)
           (stash-cl/task-planner:plan-create-link target-file package-file)
           (incf (folding-stats-file-symlinks-created *folding-context*)))))
     
@@ -385,9 +402,8 @@ This is called during unfolding or when we can't fold."
              (target-subdir (concatenate 'string target-dir "/" subdir-name))
              (package-subdir subdir-path))
         
-        ;; Check if directory should be ignored
-        (unless (and *current-ignore-patterns*
-                     (stash-cl/package-mgmt:should-ignore-p subdir-name *current-ignore-patterns*))
+        ;; Check if directory should be skipped
+        (unless (file-should-be-skipped-p subdir-name)
           ;; Try to fold this subdirectory
           (if (can-fold-directory-p target-subdir package-subdir)
               (fold-directory target-subdir package-subdir)
@@ -495,14 +511,12 @@ This is an ENHANCEMENT over GNU Stow which doesn't actively refold."
 
 ;;; High-level folding interface
 
-;; Legacy variable - now stored in folding-context
-(defparameter *current-ignore-patterns* nil
-  "Ignore patterns for the current package being stashed.
- Deprecated: use (folding-ignore-patterns *folding-context*) instead.")
 
-(defun stash-package-with-folding (package-path target-path &key cli-patterns)
+(defun stash-package-with-folding (package-path target-path &key cli-patterns defer-patterns override-patterns)
   "Stash PACKAGE-PATH to TARGET-PATH with intelligent folding.
-CLI-PATTERNS are additional ignore patterns from command line."
+CLI-PATTERNS are additional ignore patterns from command line.
+DEFER-PATTERNS are regex patterns to skip during this stashing operation.
+OVERRIDE-PATTERNS are regex patterns to force-include even if ignored."
   
   (reset-folding-stats)
   
@@ -510,9 +524,15 @@ CLI-PATTERNS are additional ignore patterns from command line."
   (setf *current-ignore-patterns* 
         (append (stash-cl/package-mgmt:read-ignore-patterns package-path)
                 cli-patterns))
+  (setf *current-defer-patterns* defer-patterns)
+  (setf *current-override-patterns* override-patterns)
   
   (when (and cli-patterns (>= *folding-verbosity* 1))
     (format t "~%Using ~A CLI ignore pattern(s)~%" (length cli-patterns)))
+  (when (and defer-patterns (>= *folding-verbosity* 1))
+    (format t "Using ~A defer pattern(s)~%" (length defer-patterns)))
+  (when (and override-patterns (>= *folding-verbosity* 1))
+    (format t "Using ~A override pattern(s)~%" (length override-patterns)))
   
   (when (>= *folding-verbosity* 1)
     (format t "~%Analyzing package structure for optimal folding...~%"))

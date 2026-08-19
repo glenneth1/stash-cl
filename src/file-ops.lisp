@@ -83,9 +83,6 @@
 
 (defun file-is-symlink-p (path)
   "Check if PATH is a symbolic link."
-  #+osicat
-  (eq (osicat:file-kind path :follow-symlinks nil) :symbolic-link)
-  #-osicat
   (handler-case
       (zerop (nth-value 2 (uiop:run-program (list "test" "-L" path)
                                             :ignore-error-status t)))
@@ -113,9 +110,6 @@
 (defun create-symlink (target source)
   "Create a symbolic link from TARGET to SOURCE."
   (log-action "CREATE-SYMLINK" target source)
-  #+osicat
-  (osicat:make-link target :target source)
-  #-osicat
   (uiop:run-program (list "ln" "-s" source target)))
 
 (defun delete-directory (path)

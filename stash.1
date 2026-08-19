@@ -1,4 +1,4 @@
-.TH STASH 1 "December 2025" "stash-cl 0.1.0" "User Commands"
+.TH STASH 1 "August 2026" "stash-cl 0.2.0" "User Commands"
 .SH NAME
 stash \- manage dotfiles and symlinks with intelligent tree folding
 .SH SYNOPSIS
@@ -39,6 +39,10 @@ then stashing again. Useful for updating packages after changes.
 Deploy mode: stash all packages found in the stash directory. This is
 useful for initial setup on a new machine.
 .TP
+.B \-l, \-\-list
+List all packages in the stash directory and show their stashing status
+(stashed, not stashed, partial, or empty) in the target directory.
+.TP
 .BI "\-i, \-\-import=" PATH
 Import an existing file or directory into a new package. This moves the
 file/directory into the package directory structure and creates a symlink
@@ -47,6 +51,11 @@ back to the original location. Must be used with \fB\-\-package\fR.
 .BI "\-p, \-\-package=" NAME
 Specify the package name when using \fB\-\-import\fR. The imported file
 or directory will be placed in a package with this name.
+.TP
+.B \-\-adopt
+Adopt existing files in the target directory into the package. This moves
+existing files into the package directory and replaces them with symlinks.
+Useful for converting existing configurations into a managed package.
 .SS "Directory Options"
 .TP
 .BI "\-\-dir=" DIR
@@ -97,7 +106,22 @@ Display version information and exit.
 .SH "IGNORE PATTERNS"
 .B stash
 supports ignore patterns to exclude certain files from being stashed.
-Patterns can be specified in two ways:
+Patterns can be specified in several ways:
+.SS "CLI Ignore Patterns"
+.TP
+.BI "\-\-ignore=" REGEX
+Ignore files matching REGEX. Can be specified multiple times. These are
+combined with file-based patterns.
+.TP
+.BI "\-\-defer=" REGEX
+Defer (skip) files matching REGEX during the current stashing operation.
+Unlike \fB\-\-ignore\fR, defer patterns are per-operation and not saved.
+Can be specified multiple times.
+.TP
+.BI "\-\-override=" REGEX
+Force-include files matching REGEX even if they match an ignore or defer
+pattern. Can be specified multiple times. Override patterns take priority
+over all ignore patterns.
 .SS "Global Ignore File"
 .TP
 .I ~/.stash\-global\-ignore

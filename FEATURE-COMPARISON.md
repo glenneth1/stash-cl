@@ -26,13 +26,15 @@ This document compares the feature set of GNU Stow (the reference implementation
 | Folding statistics | ❌ No | ✅ Yes | ✅ ENHANCEMENT | Shows detailed folding report |
 | **Conflict Handling** |
 | Detect conflicts | ✅ Yes | ✅ Yes | ✅ IMPLEMENTED | |
-| Adopt files | ✅ `--adopt` | ❌ No | ⚠️ NOT IMPLEMENTED | Planned for future |
+| Adopt files | ✅ `--adopt` | ✅ `--adopt` | ✅ IMPLEMENTED | Move existing files into package |
 | **Ignore Patterns** |
 | Global ignore file | ✅ `.stow-global-ignore` | ✅ `.stash-global-ignore` | ✅ IMPLEMENTED | Renamed |
 | Local ignore file | ✅ `.stow-local-ignore` | ✅ `.stash-local-ignore` | ✅ IMPLEMENTED | Renamed |
-| Regex ignore | ✅ `--ignore=REGEX` | ❌ No | ⚠️ NOT IMPLEMENTED | Uses ignore files only |
-| Defer patterns | ✅ `--defer=REGEX` | ❌ No | ⚠️ NOT IMPLEMENTED | Planned for future |
-| Override patterns | ✅ `--override=REGEX` | ❌ No | ⚠️ NOT IMPLEMENTED | Planned for future |
+| Regex ignore | ✅ `--ignore=REGEX` | ✅ `--ignore=REGEX` | ✅ IMPLEMENTED | CLI + file patterns combined |
+| Defer patterns | ✅ `--defer=REGEX` | ✅ `--defer=REGEX` | ✅ IMPLEMENTED | Per-operation skip patterns |
+| Override patterns | ✅ `--override=REGEX` | ✅ `--override=REGEX` | ✅ IMPLEMENTED | Force-include ignored files |
+| List packages | ❌ No | ✅ `-l, --list` | ✅ ENHANCEMENT | Shows stashed status per package |
+| Import files | ❌ No | ✅ `-i, --import` | ✅ ENHANCEMENT | Create package from existing files |
 | **Advanced Features** |
 | Deploy mode | ❌ No | ✅ `-d, --deploy` | ✅ ENHANCEMENT | Stow all packages |
 | Task planning | ❌ No | ✅ Yes | ✅ ENHANCEMENT | Validates before executing |
@@ -40,7 +42,7 @@ This document compares the feature set of GNU Stow (the reference implementation
 | **Help & Documentation** |
 | Help message | ✅ `-h, --help` | ✅ `-h, --help` | ✅ IMPLEMENTED | |
 | Version info | ✅ `--version` | ✅ `--version` | ✅ IMPLEMENTED | |
-| Man page | ✅ Yes | ❌ No | ⚠️ TODO | Need to create |
+| Man page | ✅ Yes | ✅ Yes | ✅ IMPLEMENTED | Installed via make install |
 | Info manual | ✅ Yes | ❌ No | ⚠️ TODO | Need to create |
 
 ## Implementation Status Summary
@@ -62,13 +64,12 @@ This document compares the feature set of GNU Stow (the reference implementation
 - **Task Planning System**: Validates all operations before executing
 - **Task Summary**: Shows planned operations before execution
 - **Deploy Mode**: Stow all packages in one command
+- **List Mode**: Shows all packages and their stashed status
+- **Import Mode**: Create a package from existing files in the target directory
+- **Adopt Mode**: Move existing files into a package and replace with symlinks
+- **CLI Ignore Patterns**: Combine CLI `--ignore` flags with file-based patterns
 
 ### ⚠️ Not Yet Implemented
-- `--adopt` flag (move existing files into package)
-- `--ignore=REGEX` CLI flag (currently only uses ignore files)
-- `--defer=REGEX` flag
-- `--override=REGEX` flag
-- Man page documentation
 - Info manual documentation
 
 ### 🔄 Differences from GNU Stow
@@ -132,4 +133,4 @@ For users migrating from GNU Stow:
 
 ## Conclusion
 
-Stash-CL implements all core GNU Stow features plus several enhancements. The main missing features are advanced ignore patterns via CLI flags and the `--adopt` option. The enhanced folding system and task planning make stash-cl safer and more intelligent than GNU Stow in many scenarios.
+Stash-CL matches or exceeds GNU Stow on all core features. The only remaining gaps are `--defer` and `--override` (niche pattern flags). Stash-CL adds several enhancements GNU Stow lacks: list mode, import mode, adopt mode, CLI ignore patterns, smart partial folding, automatic refolding, folding statistics, deploy mode, and a task planning system that validates operations before executing.

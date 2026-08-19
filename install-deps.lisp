@@ -2,7 +2,6 @@
 
 (format t "~%Installing stash-cl dependencies...~%~%")
 
-(ql:quickload :osicat)
 (ql:quickload :unix-opts)
 (ql:quickload :cl-ppcre)
 (ql:quickload :alexandria)

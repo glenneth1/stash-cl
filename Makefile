@@ -1,6 +1,6 @@
 # Makefile for stash-cl
 
-.PHONY: all build clean test compress compress-max install-upx install install-man uninstall
+.PHONY: all build stash clean test compress compress-max install-upx install install-man uninstall
 
 all: build
 
@@ -70,7 +70,7 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 MANDIR = $(PREFIX)/share/man/man1
 
-install: stash
+install:
 	@echo "Installing stash to $(BINDIR)..."
 	install -d $(BINDIR)
 	install -m 755 stash $(BINDIR)/

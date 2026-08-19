@@ -13,6 +13,7 @@ Options:
   -t, --target=DIR      Target directory
   --dir=DIR             Stash directory (default: current)
   -d, --deploy          Deploy mode
+  -l, --list            List all packages and their stashed status
   -D, --delete          Unstash packages
   -R, --restash         Restash packages (unstash then stash)
   -i, --import=PATH     Import existing file/directory into a package
@@ -20,6 +21,8 @@ Options:
   -n, --simulate        Simulation mode (dry-run)
   --adopt               Adopt existing files into package
   --ignore=REGEX        Ignore pattern (can be used multiple times)
+  --defer=REGEX         Defer pattern - skip files matching REGEX
+  --override=REGEX      Override pattern - force stow files matching REGEX
   --no-folding          Disable tree folding
   -v, --verbose         Increase verbosity (-v, -vv, -vvv)
   -h, --help            Display this help
@@ -28,6 +31,7 @@ Options:
 Examples:
   cd ~/.dotfiles && stash emacs         # Stash emacs package
   stash -D emacs                        # Unstash emacs
+  stash -l                              # List all packages and status
   stash -R emacs                        # Restash emacs
   stash -n vim                          # Simulate stashing vim
   stash -vv perl                        # Stash with verbose output
@@ -41,5 +45,5 @@ Import (create package from existing files):
 
 (defun display-version ()
   "Display version information."
-  (format t "stash-cl version 0.1.0~%")
+  (format t "stash-cl version 0.2.0~%")
   (format t "Common Lisp rewrite of GNU Stow replacement~%"))

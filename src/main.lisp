@@ -78,6 +78,18 @@
    :arg-parser #'identity
    :meta-var "REGEX")
   
+  (:name :defer
+   :description "Defer pattern - skip files matching REGEX during stashing"
+   :long "defer"
+   :arg-parser #'identity
+   :meta-var "REGEX")
+  
+  (:name :override
+   :description "Override pattern - force stow files matching REGEX even if ignored"
+   :long "override"
+   :arg-parser #'identity
+   :meta-var "REGEX")
+  
   (:name :recursive
    :description "Recursively process directories"
    :short #\r
@@ -95,17 +107,24 @@
    :short #\p
    :long "package"
    :arg-parser #'identity
-   :meta-var "NAME"))
+   :meta-var "NAME")
+  
+  (:name :list
+   :description "List all packages and their stashed status"
+   :short #\l
+   :long "list"))
 
 ;;; Helper Functions
 
 (defun get-all-packages (stash-dir)
-  "Get list of all packages in STASH-DIR."
+  "Get list of all packages in STASH-DIR.
+Excludes dot-directories (e.g. .git) which are not stash packages."
   (let ((packages nil))
     (dolist (entry (uiop:subdirectories stash-dir))
       (let ((package-name (car (last (pathname-directory entry)))))
         (unless (or (string= package-name ".")
-                   (string= package-name ".."))
+                   (string= package-name "..")
+                   (char= (char package-name 0) #\.))
           (push package-name packages))))
     (nreverse packages)))
 
@@ -189,7 +208,7 @@ Scans target directory and moves non-symlink files that would conflict into the 
       
       adopted-count)))
 
-(defun handle-stash-with-folding (package stash-dir target-dir &key simulate adopt cli-patterns)
+(defun handle-stash-with-folding (package stash-dir target-dir &key simulate adopt cli-patterns defer-patterns override-patterns)
   "Stash PACKAGE using task planner and folding."
   
   (format t "~%Stashing package: ~A~%" package)
@@ -209,7 +228,10 @@ Scans target directory and moves non-symlink files that would conflict into the 
     ;; Use enhanced folding - catch conflicts
     (handler-case
         (progn
-          (stash-package-with-folding package-path target-dir :cli-patterns cli-patterns)
+          (stash-package-with-folding package-path target-dir 
+                                       :cli-patterns cli-patterns
+                                       :defer-patterns defer-patterns
+                                       :override-patterns override-patterns)
           
           ;; Execute (or simulate)
           (execute-all-tasks :simulate simulate))
@@ -271,6 +293,94 @@ Scans target directory and moves non-symlink files that would conflict into the 
     (print-folding-stats)
     
     (format t "~%Restash complete!~%")))
+
+(defun package-symlink-count (package-path target-dir)
+  "Count how many symlinks in TARGET-DIR correspond to files in PACKAGE-PATH.
+Walks the package tree (not the target) and checks each corresponding target path.
+Returns two values: count of active symlinks, and total files in package."
+  (let ((package-real (namestring (truename package-path)))
+        (symlink-count 0)
+        (total-count 0))
+    (labels ((check-package (pkg-dir rel-path)
+               "Walk package directory, checking corresponding target paths."
+               ;; Check files in this directory
+               (dolist (f (uiop:directory-files pkg-dir))
+                 (incf total-count)
+                 (let* ((fname (file-namestring f))
+                        (target-path (concatenate 'string target-dir "/" rel-path fname)))
+                   (when (and (probe-file target-path)
+                              (file-is-symlink-p target-path))
+                     (let ((link-target (read-symlink target-path)))
+                       (handler-case
+                           (let ((resolved (namestring (truename link-target))))
+                             (when (alexandria:starts-with-subseq package-real resolved)
+                               (incf symlink-count)))
+                         (error () nil))))))
+               ;; Check subdirectories
+               (dolist (d (uiop:subdirectories pkg-dir))
+                 (let* ((dname (car (last (pathname-directory d))))
+                        (target-path (concatenate 'string target-dir "/" rel-path dname)))
+                   (cond
+                     ;; Target is a symlink - check if it points to this package dir
+                     ((and (probe-file target-path)
+                           (file-is-symlink-p target-path))
+                      (incf total-count)
+                      (let ((link-target (read-symlink target-path)))
+                        (handler-case
+                            (let ((resolved (namestring (truename link-target))))
+                              (when (alexandria:starts-with-subseq package-real resolved)
+                                (incf symlink-count)))
+                          (error () nil))))
+                     ;; Target is a real directory - recurse into it
+                     ((and (probe-file target-path)
+                           (not (file-is-symlink-p target-path)))
+                      (check-package (namestring d)
+                                     (concatenate 'string rel-path dname "/")))
+                     ;; Target doesn't exist - count the file but no symlink
+                     (t
+                      (incf total-count)))))))
+      (check-package package-path ""))
+    (values symlink-count total-count)))
+
+(defun handle-list (stash-dir target-dir)
+  "List all packages in STASH-DIR and show whether they are stashed into TARGET-DIR."
+  (let ((packages (get-all-packages stash-dir)))
+    (if (null packages)
+        (format t "No packages found in ~A~%" stash-dir)
+        (progn
+          (format t "~%Packages in ~A~%" stash-dir)
+          (format t "Target: ~A~%" target-dir)
+          (format t "~A~%" (make-string 60 :initial-element #\-))
+          (dolist (pkg packages)
+            (let* ((pkg-path (concatenate 'string stash-dir "/" pkg "/"))
+                   (pkg-exists (uiop:directory-exists-p pkg-path)))
+              (if pkg-exists
+                  (multiple-value-bind (symlink-count total-count)
+                      (package-symlink-count pkg-path target-dir)
+                    (let ((status-str
+                           (cond
+                             ((and (> total-count 0) (= symlink-count total-count))
+                              (stash-cl/colors:color-green "stashed"))
+                             ((and (> total-count 0) (= symlink-count 0))
+                              (stash-cl/colors:color-red "not stashed"))
+                             ((= total-count 0)
+                              (stash-cl/colors:color-yellow "empty"))
+                             (t
+                              (format nil "~A/~D"
+                                      (stash-cl/colors:color-yellow "partial")
+                                      symlink-count)))))
+                      (format t "  ~A~A~A  [~A]  (~D file~:P)~%"
+                              (stash-cl/colors:color-bold pkg)
+                              (make-string (max 1 (- 20 (length pkg))) :initial-element #\space)
+                              status-str
+                              status-str
+                              total-count)))
+                  (format t "  ~A~A  [~A]~%"
+                          pkg
+                          (make-string (max 1 (- 20 (length pkg))) :initial-element #\space)
+                          (stash-cl/colors:color-red "missing")))))
+          (format t "~A~%" (make-string 60 :initial-element #\-))
+          (format t "~D package~:P found~%~%" (length packages))))))
 
 (defun handle-deploy (stash-dir target-dir &key simulate)
   "Deploy all packages from STASH-DIR to TARGET-DIR."
@@ -389,6 +499,7 @@ moves the source into the package, and creates a symlink back."
                  (delete (getf options :delete))
                  (restash (getf options :restash))
                  (deploy (getf options :deploy))
+                 (list-mode (getf options :list))
                  (adopt (getf options :adopt))
                  (import-path (getf options :import))
                  (package-name (getf options :package))
@@ -402,6 +513,12 @@ moves the source into the package, and creates a symlink back."
                  (cli-ignore-patterns (loop for (key val) on options by #'cddr
                                            when (eq key :ignore)
                                            collect val))
+                 (cli-defer-patterns (loop for (key val) on options by #'cddr
+                                          when (eq key :defer)
+                                          collect val))
+                 (cli-override-patterns (loop for (key val) on options by #'cddr
+                                             when (eq key :override)
+                                             collect val))
                  (packages free-args))
             
             ;; Set folding options
@@ -413,6 +530,10 @@ moves the source into the package, and creates a symlink back."
             (let ((target-dir (resolve-target-path target stash-dir)))
               
               (cond
+                ;; List mode - show all packages and their status
+                (list-mode
+                 (handle-list stash-dir target-dir))
+                
                 ;; Import mode - import existing file/directory into a package
                 (import-path
                  (if package-name
@@ -445,7 +566,9 @@ moves the source into the package, and creates a symlink back."
                    (handle-stash-with-folding pkg stash-dir target-dir 
                                              :simulate simulate 
                                              :adopt adopt
-                                             :cli-patterns cli-ignore-patterns)))
+                                             :cli-patterns cli-ignore-patterns
+                                             :defer-patterns cli-defer-patterns
+                                             :override-patterns cli-override-patterns)))
                 
                 ;; No action specified
                 (t

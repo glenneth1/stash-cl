@@ -194,7 +194,7 @@ stash-cl/
 
 - SBCL (Steel Bank Common Lisp)
 - Quicklisp
-- Libraries: uiop, osicat, unix-opts, cl-ppcre, alexandria, local-time
+- Libraries: uiop, unix-opts, cl-ppcre, alexandria, local-time
 
 ## License
 

@@ -118,7 +118,8 @@
            #:package-info-ignore-patterns
            ;; Functions
            #:read-ignore-patterns
-           #:should-ignore-p))
+           #:should-ignore-p
+           #:should-ignore-with-overrides-p))
 
 (defpackage #:stash-cl/tree
   (:use #:cl)
@@ -235,7 +236,8 @@
            #:stash-package-with-folding
            #:unstash-package-with-refolding
            #:reset-folding-stats
-           #:print-folding-stats))
+           #:print-folding-stats
+           #:read-symlink))
 
 (defpackage #:stash-cl/help
   (:use #:cl)
@@ -279,6 +281,7 @@
                 #:*folding-verbosity*
                 #:stash-package-with-folding
                 #:unstash-package-with-refolding
-                #:print-folding-stats)
+                #:print-folding-stats
+                #:read-symlink)
   (:export #:main
            #:toplevel-entry))

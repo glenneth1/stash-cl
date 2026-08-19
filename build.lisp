@@ -25,6 +25,10 @@
 (format t "Loading stash-cl system...~%")
 (ql:quickload :stash-cl)
 
+;; Force recompile of all stash-cl source files
+(format t "Force recompiling stash-cl source...~%")
+(asdf:load-system :stash-cl :force :all)
+
 ;; Build the executable with compression
 (format t "~%Creating compressed executable...~%")
 

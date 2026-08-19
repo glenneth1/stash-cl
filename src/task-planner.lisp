@@ -402,9 +402,6 @@
 
 (defun read-symlink-target (path)
   "Read the target of a symlink at PATH."
-  #+osicat
-  (osicat:read-link path)
-  #-osicat
   (let ((output (uiop:run-program (list "readlink" path)
                                   :output :string
                                   :ignore-error-status t)))

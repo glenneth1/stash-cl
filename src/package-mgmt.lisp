@@ -136,3 +136,16 @@ Patterns ending with /* match the directory name before the slash."
                                    (glob-to-regex pattern))))  ; Convert glob to regex
             (cl-ppcre:scan regex-pattern filename)))
         patterns))
+
+(defun should-ignore-with-overrides-p (filename patterns override-patterns)
+  "Check if FILENAME should be ignored, considering override patterns.
+Returns T if the file matches an ignore pattern AND does not match any override pattern.
+Override patterns force-include files that would otherwise be ignored."
+  (and (should-ignore-p filename patterns)
+       (not (some (lambda (override)
+                    (let ((regex-pattern (if (or (char= (char override 0) #\^)
+                                                 (find #\\ override))
+                                             override
+                                             (glob-to-regex override))))
+                      (cl-ppcre:scan regex-pattern filename)))
+                  override-patterns))))
