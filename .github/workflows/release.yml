@@ -23,7 +23,7 @@ jobs:
       - name: Install Quicklisp
         run: |
           curl -L https://beta.quicklisp.org/quicklisp.lisp -o /tmp/quicklisp.lisp
-          sbcl --non-interactive --load /tmp/quicklisp.lisp \
+          echo "" | sbcl --non-interactive --load /tmp/quicklisp.lisp \
             --eval '(quicklisp-quickstart:install)' \
             --eval '(ql:add-to-init-file)' \
             --eval '(quit)'
