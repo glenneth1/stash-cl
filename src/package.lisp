@@ -92,6 +92,7 @@
            #:file-is-symlink-p
            #:file-is-directory-p
            #:file-is-regular-p
+           #:read-symlink
            ;; Low-level operations
            #:move-source-to-target
            #:create-symlink
@@ -206,7 +207,8 @@
   (:use #:cl)
   (:import-from #:stash-cl/file-ops
                 #:file-is-symlink-p
-                #:file-is-directory-p)
+                #:file-is-directory-p
+                #:read-symlink)
   (:import-from #:stash-cl/task-planner
                 #:plan-create-link
                 #:plan-remove-link
@@ -236,8 +238,7 @@
            #:stash-package-with-folding
            #:unstash-package-with-refolding
            #:reset-folding-stats
-           #:print-folding-stats
-           #:read-symlink))
+           #:print-folding-stats))
 
 (defpackage #:stash-cl/config
   (:use #:cl)
@@ -277,7 +278,8 @@
                 #:file-is-directory-p
                 #:file-is-symlink-p
                 #:create-symlink
-                #:mkdir-p)
+                #:mkdir-p
+                #:read-symlink)
   (:import-from #:stash-cl/paths
                 #:canonicalize-path
                 #:expand-home)
@@ -304,7 +306,6 @@
                 #:*folding-verbosity*
                 #:stash-package-with-folding
                 #:unstash-package-with-refolding
-                #:print-folding-stats
-                #:read-symlink)
+                #:print-folding-stats)
   (:export #:main
            #:toplevel-entry))

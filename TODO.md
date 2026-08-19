@@ -198,11 +198,14 @@
 
 ### Quality Improvements
 
-- [ ] **Performance optimization** (LOW)
-  - Profile code for bottlenecks
-  - Optimize directory traversal
-  - Cache file system queries
-  - **Estimated**: 4-6 hours
+- [x] **Performance optimization** (LOW) ✅ COMPLETE
+  - [x] Replace process-spawning file operations with direct syscalls
+  - [x] file-is-symlink-p: sb-posix:lstat instead of `test -L` process spawn
+  - [x] create-symlink: sb-posix:symlink instead of `ln -s` process spawn
+  - [x] delete-directory: uiop:delete-directory-tree instead of `rm -rf` process spawn
+  - [x] read-symlink: sb-posix:readlink instead of `readlink` process spawn
+  - [x] Consolidated duplicate read-symlink functions into file-ops.lisp
+  - **Result**: Eliminates thousands of process spawns per stash operation
 
 - [x] **Better progress indicators** (LOW) ✅ COMPLETE
   - [x] Add progress tracking with progress-start/progress-tick

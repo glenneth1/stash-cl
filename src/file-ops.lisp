@@ -2,6 +2,9 @@
 
 (in-package #:stash-cl/file-ops)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :sb-posix))
+
 ;;; CLOS File Operation Protocol
 
 (defclass file-operation ()
@@ -84,8 +87,7 @@
 (defun file-is-symlink-p (path)
   "Check if PATH is a symbolic link."
   (handler-case
-      (zerop (nth-value 2 (uiop:run-program (list "test" "-L" path)
-                                            :ignore-error-status t)))
+      (sb-posix:s-islnk (sb-posix:stat-mode (sb-posix:lstat path)))
     (error () nil)))
 
 (defun file-is-directory-p (path)
@@ -98,6 +100,12 @@
        (not (file-is-symlink-p path))
        (not (file-is-directory-p path))))
 
+(defun read-symlink (path)
+  "Read the target of a symlink at PATH."
+  (handler-case
+      (sb-posix:readlink path)
+    (error () nil)))
+
 ;;; Low-level operations (used by CLOS methods and backward compat)
 
 (defun mkdir-p (path)
@@ -108,15 +116,19 @@
        (concatenate 'string path "/"))))
 
 (defun create-symlink (target source)
-  "Create a symbolic link from TARGET to SOURCE."
+  "Create a symbolic link from TARGET to SOURCE.
+TARGET is the symlink path, SOURCE is what it points to."
   (log-action "CREATE-SYMLINK" target source)
-  (uiop:run-program (list "ln" "-s" source target)))
+  (sb-posix:symlink source target))
 
 (defun delete-directory (path)
   "Delete directory at PATH."
   (log-action "DELETE-DIR" path)
-  ;; Use rm -rf to handle directories with symlinks
-  (uiop:run-program (list "rm" "-rf" path)))
+  (uiop:delete-directory-tree
+   (if (uiop:directory-pathname-p path)
+       path
+       (concatenate 'string path "/"))
+   :validate nil))
 
 (defun move-source-to-target (source target)
   "Move SOURCE to TARGET."

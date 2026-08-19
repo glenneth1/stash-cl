@@ -92,6 +92,10 @@ Files matching these patterns are skipped during stashing.")
   "Override patterns for the current stashing operation.
 Files matching these patterns are force-included even if they match ignore patterns.")
 
+(defparameter *ignored-dirs-cache* nil
+  "Hash table caching directories that contain ignored files.
+Built once per stash operation to avoid repeated tree traversals.")
+
 (defun file-should-be-skipped-p (filename)
   "Check if FILENAME should be skipped during stashing.
 A file is skipped if it matches an ignore pattern or a defer pattern,
@@ -111,8 +115,9 @@ Returns T if the directory can be folded, NIL otherwise."
     (return-from can-fold-directory-p nil))
   
   ;; Can't fold if directory contains files that should be ignored
+  ;; Uses pre-built cache for O(1) lookup instead of tree re-traversal
   (when (and *current-ignore-patterns*
-             (directory-has-ignored-files-p package-path *current-ignore-patterns*))
+             (gethash (truename package-path) *ignored-dirs-cache*))
     (when (>= *folding-verbosity* 2)
       (format t "  Cannot fold ~A: contains ignored files~%" target-path))
     (return-from can-fold-directory-p nil))
@@ -140,27 +145,62 @@ Returns T if the directory can be folded, NIL otherwise."
   ;; Target doesn't exist - we can fold
   t)
 
+(defun build-ignored-dirs-cache (package-path)
+  "Pre-compute which directories under PACKAGE-PATH contain ignored files.
+Stores results in *ignored-dirs-cache* as a hash table keyed by truename.
+A directory is in the cache if it or any descendant contains an ignored file."
+  (setf *ignored-dirs-cache* (make-hash-table :test 'equal))
+  (labels ((scan (dir-path)
+             (when (probe-file dir-path)
+               (let ((dir-path-with-slash (if (char= (char dir-path (1- (length dir-path))) #\/)
+                                               dir-path
+                                               (concatenate 'string dir-path "/"))))
+                 (let ((has-ignored nil))
+                   ;; Check files in this directory
+                   (dolist (file (uiop:directory-files dir-path-with-slash))
+                     (let ((filename (file-namestring file)))
+                       (when (file-should-be-skipped-p filename)
+                         (setf has-ignored t))))
+                   ;; Check subdirectories recursively
+                   (dolist (subdir (uiop:subdirectories dir-path-with-slash))
+                     (let ((dirname (car (last (pathname-directory subdir)))))
+                       ;; Check if directory itself should be ignored
+                       (when (file-should-be-skipped-p dirname)
+                         (setf has-ignored t))
+                       ;; Recursively check subdirectory
+                       (when (scan (namestring subdir))
+                         (setf has-ignored t))))
+                   ;; Mark this directory in cache if it has ignored files
+                   (when has-ignored
+                     (setf (gethash (truename dir-path) *ignored-dirs-cache*) t))
+                   has-ignored)))))
+    (scan package-path)))
+
 (defun directory-has-ignored-files-p (dir-path patterns)
-  "Check if DIR-PATH contains any files that match ignore PATTERNS (recursively)."
-  (when (probe-file dir-path)
-    (let ((dir-path-with-slash (if (char= (char dir-path (1- (length dir-path))) #\/)
-                                    dir-path
-                                    (concatenate 'string dir-path "/"))))
-      ;; Check files in this directory
-      (dolist (file (uiop:directory-files dir-path-with-slash))
-        (let ((filename (file-namestring file)))
-          (when (file-should-be-skipped-p filename)
-            (return-from directory-has-ignored-files-p t))))
-      ;; Check subdirectories recursively
-      (dolist (subdir (uiop:subdirectories dir-path-with-slash))
-        (let ((dirname (car (last (pathname-directory subdir)))))
-          ;; Check if directory itself should be ignored
-          (when (file-should-be-skipped-p dirname)
-            (return-from directory-has-ignored-files-p t))
-          ;; Recursively check subdirectory contents
-          (when (directory-has-ignored-files-p (namestring subdir) patterns)
-            (return-from directory-has-ignored-files-p t))))))
-  nil)
+  "Check if DIR-PATH contains any files that match ignore PATTERNS (recursively).
+Uses *ignored-dirs-cache* when available for O(1) lookup."
+  (declare (ignore patterns))
+  (if *ignored-dirs-cache*
+      (gethash (truename dir-path) *ignored-dirs-cache*)
+      ;; Fallback: scan without cache
+      (when (probe-file dir-path)
+        (let ((dir-path-with-slash (if (char= (char dir-path (1- (length dir-path))) #\/)
+                                        dir-path
+                                        (concatenate 'string dir-path "/"))))
+          ;; Check files in this directory
+          (dolist (file (uiop:directory-files dir-path-with-slash))
+            (let ((filename (file-namestring file)))
+              (when (file-should-be-skipped-p filename)
+                (return-from directory-has-ignored-files-p t))))
+          ;; Check subdirectories recursively
+          (dolist (subdir (uiop:subdirectories dir-path-with-slash))
+            (let ((dirname (car (last (pathname-directory subdir)))))
+              ;; Check if directory itself should be ignored
+              (when (file-should-be-skipped-p dirname)
+                (return-from directory-has-ignored-files-p t))
+              ;; Recursively check subdirectory contents
+              (when (directory-has-ignored-files-p (namestring subdir) nil)
+                (return-from directory-has-ignored-files-p t))))))))
 
 (defun directory-empty-or-owned-p (dir-path)
   "Check if DIR-PATH is empty.
@@ -172,15 +212,6 @@ For multiple package support, we only fold truly empty directories."
          (subdirs (uiop:subdirectories dir-path-with-slash)))
     ;; Directory must be completely empty (no files, no subdirs)
     (and (null files) (null subdirs))))
-
-(defun read-symlink (path)
-  "Read the target of a symlink at PATH."
-  #+osicat
-  (osicat:read-link path)
-  #-osicat
-  (string-trim '(#\Newline #\Return)
-               (uiop:run-program (list "readlink" path)
-                                :output :string)))
 
 (defun symlink-points-to-package-p (link-dest package-path)
   "Check if LINK-DEST points to PACKAGE-PATH or a subdirectory of it."
@@ -536,6 +567,10 @@ OVERRIDE-PATTERNS are regex patterns to force-include even if ignored."
   
   (when (>= *folding-verbosity* 1)
     (format t "~%Analyzing package structure for optimal folding...~%"))
+  
+  ;; Pre-compute which directories contain ignored files (O(n) single pass)
+  ;; This avoids O(n^2) re-traversals during can-fold-directory-p checks
+  (build-ignored-dirs-cache package-path)
   
   ;; Always stash contents into target, never fold the target itself
   ;; The target directory is the stash target (e.g., /usr/local), not a package

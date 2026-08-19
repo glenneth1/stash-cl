@@ -400,13 +400,6 @@
 
 ;;; Helper functions for common task patterns
 
-(defun read-symlink-target (path)
-  "Read the target of a symlink at PATH."
-  (let ((output (uiop:run-program (list "readlink" path)
-                                  :output :string
-                                  :ignore-error-status t)))
-    (string-trim '(#\Newline #\Return) output)))
-
 (defun check-path-conflict (path source)
   "Check if PATH has a conflict. Returns NIL if no conflict, error message if conflict."
   (cond
@@ -416,7 +409,7 @@
     
     ;; Path is a symlink
     ((stash-cl/file-ops:file-is-symlink-p path)
-     (let ((link-target (read-symlink-target path)))
+     (let ((link-target (stash-cl/file-ops:read-symlink path)))
        (cond
          ;; Symlink points to same source - no conflict (idempotent)
          ((string= (namestring (truename link-target))
