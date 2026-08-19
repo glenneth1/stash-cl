@@ -22,10 +22,14 @@ A GNU Stow replacement written in Common Lisp with enhanced tree folding and int
 - **Automatic Refolding** - Refolds after unstash automatically
 - **File Adoption** - Easily adopt existing dotfiles into management
 - **CLI Ignore Patterns** - Add ignore patterns from command line
+- **Defer and Override Patterns** - Skip or force-include files per operation
+- **Import Mode** - Create packages from existing files with symlinks
+- **List Mode** - Show all packages and their stashing status
+- **Deploy Mode** - Stash all packages in one command
 - **Colored Error Messages** - Helpful suggestions with every error
 - **Detailed Statistics** - Shows exactly what happened
 - **Better Verbosity** - 4 levels with clear output
-- **88% Smaller** - 14MB executable vs Perl + dependencies
+- **Smaller Footprint** - 16MB standalone executable vs Perl + dependencies
 
 ## Building
 
@@ -41,7 +45,7 @@ sbcl --load build.lisp
 ```
 
 This produces:
-- **`stash`** - Compressed standalone executable (~12 MB)
+- **`stash`** - Compressed standalone executable (~16 MB)
 
 See [COMPRESSION.md](COMPRESSION.md) for details on compression options and [PACKAGING.md](PACKAGING.md) for distribution guidelines.
 
@@ -243,7 +247,7 @@ stash -n <package>
 ## FAQ
 
 **Q: How is stash-cl different from GNU Stow?**  
-A: stash-cl provides enhanced tree folding, automatic refolding, file adoption, CLI ignore patterns, colored error messages, and a smaller footprint (14MB vs Perl + dependencies).
+A: stash-cl provides enhanced tree folding, automatic refolding, file adoption, CLI ignore patterns, defer/override patterns, import mode, list mode, deploy mode, colored error messages, and a smaller footprint (16MB standalone vs Perl + dependencies).
 
 **Q: Can I use stash-cl as a drop-in replacement for GNU Stow?**  
 A: Yes! stash-cl supports all core GNU Stow operations. The main difference is improved folding behavior and additional features.
@@ -279,7 +283,7 @@ A: Yes! Use `-n` (simulation mode) to see what would happen before making change
 | Colored error messages | ❌ | ✅ |
 | Task validation | ❌ | ✅ |
 | Restash operation | ❌ | ✅ Single command |
-| Executable size | ~5MB + Perl | 14MB standalone |
+| Executable size | ~5MB + Perl | 16MB standalone |
 | Dependencies | Perl | None (standalone binary) |
 | Man page | ✅ | ✅ |
 

@@ -26,8 +26,12 @@
 - **Conflict Detection**: Detects and reports conflicts before making changes
 - **Simulation Mode**: Preview changes without modifying your system
 - **Ignore Patterns**: Exclude files using glob patterns or regex
+- **Defer Patterns**: Skip files matching a regex during a single operation
+- **Override Patterns**: Force-include files that would otherwise be ignored or deferred
 - **Task Planning**: Validates all operations before executing
 - **Deploy Mode**: Install all packages at once
+- **Import Mode**: Create packages from existing files with automatic symlink creation
+- **List Mode**: Show all packages and their stashing status
 
 ### Why Stash-CL?
 
@@ -55,7 +59,7 @@ make
 ```
 
 This creates:
-- `./stash` - Compressed standalone executable (~12MB)
+- `./stash` - Compressed standalone executable (~16MB)
 
 ### Installing System-Wide
 
@@ -114,6 +118,17 @@ This creates:
 ls -la ~/.vimrc
 # lrwxrwxrwx ... .vimrc -> /home/user/dotfiles/vim/.vimrc
 ```
+
+### 5. Import Existing Files
+
+Instead of creating packages manually, you can import existing files:
+
+```bash
+stash --import ~/.bashrc --package bash --dir ~/dotfiles --target ~
+```
+
+This moves the file into the package, creates the package directory, and symlinks
+the original location. See [Import](#import-create-package-from-existing-files) below.
 
 ---
 
@@ -254,12 +269,53 @@ stash -d                              # Deploy all packages
 stash -d --dir ~/dotfiles --target ~  # Deploy with custom paths
 ```
 
+#### List (Show Status)
+
+```bash
+stash -l [OPTIONS]
+stash --list [OPTIONS]
+```
+
+List all packages in the stash directory and show their stashing status.
+
+**Examples:**
+```bash
+stash -l                              # List all packages
+stash -l --dir ~/dotfiles --target ~  # List with custom paths
+```
+
+#### Adopt (Move Existing Files)
+
+```bash
+stash --adopt [OPTIONS] PACKAGE [PACKAGE...]
+```
+
+Move existing files in the target directory into the package directory, then
+create symlinks. Useful for converting existing configurations into managed
+packages.
+
+**Examples:**
+```bash
+stash --adopt vim                     # Adopt existing vim files
+stash -n --adopt vim                  # Simulate adoption first
+```
+
+#### Version
+
+```bash
+stash -V
+stash --version
+```
+
+Display version information.
+
 ### Options
 
 #### Directory Options
 
-- `--dir=DIR` - Stash directory (default: current directory)
+- `--dir=DIR` - Stash directory (default: current directory). Note: `--dir` has no short flag; `-d` is used for `--deploy`.
 - `--target=DIR` - Target directory (default: parent of stash directory)
+- `-s, --source=DIR` - Source directory (alternative to `--dir`)
 
 **Examples:**
 ```bash
@@ -271,12 +327,27 @@ stash --dir /opt/packages --target /usr/local myapp
 
 - `-n, --simulate` - Simulation mode (dry-run, no changes made)
 - `--no-folding` - Disable tree folding (create individual file symlinks)
+- `--adopt` - Adopt existing files into package
 
 **Examples:**
 ```bash
 stash -n vim                    # Preview what would happen
 stash --simulate vim bash       # Simulate multiple packages
 stash --no-folding vim          # Force individual file symlinks
+stash --adopt vim               # Adopt existing files
+```
+
+#### Pattern Options
+
+- `--ignore=REGEX` - Ignore files matching REGEX (can be used multiple times)
+- `--defer=REGEX` - Skip files matching REGEX for this operation only (can be used multiple times)
+- `--override=REGEX` - Force-include files matching REGEX, even if ignored or deferred (can be used multiple times)
+
+**Examples:**
+```bash
+stash --ignore='.*\.bak' vim          # Ignore .bak files
+stash --defer='.*\.cache' emacs       # Skip cache files this time
+stash --override='important\.conf' vim  # Force-include despite ignore rules
 ```
 
 #### Verbosity Options
@@ -293,9 +364,10 @@ stash -vv vim                   # Show folding details
 stash -vvv vim                  # Show debug info
 ```
 
-#### Help
+#### Help and Version
 
 - `-h, --help` - Show help message
+- `-V, --version` - Show version information
 
 ---
 
@@ -373,17 +445,26 @@ Ignore patterns support glob syntax:
 
 ### Pattern Matching
 
-Patterns are matched against **filenames only**, not full paths:
-- ✅ `*.log` matches `debug.log`
-- ✅ `test-*` matches `test-script.sh`
-- ❌ `config/*.log` doesn't work (use `*.log` instead)
+File-based patterns (`.stash-global-ignore` and `.stash-local-ignore`) are matched
+against **filenames only**, not full paths:
+- `*.log` matches `debug.log`
+- `test-*` matches `test-script.sh`
+- `config/*.log` does not work (use `*.log` instead)
+
+CLI patterns (`--ignore`, `--defer`, `--override`) use **regular expressions**
+matched against the full relative path:
+- `--ignore='.*\.bak'` matches any file ending in `.bak`
+- `--ignore='cache/.*'` matches everything inside `cache/` directories
 
 ### Combining Patterns
 
-Both global and local patterns are applied:
+All pattern sources are applied together:
 1. Global patterns from `~/.stash-global-ignore`
 2. Local patterns from `package/.stash-local-ignore`
-3. Default patterns (`.git`, `README`, etc.)
+3. CLI patterns from `--ignore`, `--defer`, and `--override` flags
+4. Default patterns (`.git`, `README`, etc.)
+
+`--override` patterns take priority over all ignore and defer patterns.
 
 ---
 
@@ -586,7 +667,7 @@ ls -la ~/.vimrc
 # lrwxrwxrwx ... .vimrc -> /home/user/dotfiles/vim/.vimrc
 ```
 
-### Example 3: Multiple Packages
+### Example 3: Multiple Packages (Manual Setup)
 
 ```bash
 # Create multiple packages
@@ -603,7 +684,7 @@ stash vim bash git
 stash -d
 ```
 
-### Example 3: Ignore Patterns
+### Example 4: Ignore Patterns
 
 ```bash
 # Create global ignore
@@ -623,7 +704,7 @@ EOF
 stash vim
 ```
 
-### Example 4: Software Installation
+### Example 5: Software Installation
 
 ```bash
 # Package structure for custom software
@@ -639,7 +720,7 @@ which myapp
 # /usr/local/bin/myapp
 ```
 
-### Example 5: Simulation Mode
+### Example 6: Simulation Mode
 
 ```bash
 # Always test first
@@ -654,7 +735,7 @@ stash -n vim
 stash vim
 ```
 
-### Example 6: Overlapping Directories
+### Example 7: Overlapping Directories
 
 ```bash
 # Two packages with .config/
@@ -671,7 +752,7 @@ ls -la ~/.config/
 # lrwxrwxrwx ... app2 -> /home/user/dotfiles/app2/.config/app2
 ```
 
-### Example 7: Restashing After Updates
+### Example 8: Restashing After Updates
 
 ```bash
 # Update package
@@ -686,7 +767,7 @@ stash -D vim
 stash vim
 ```
 
-### Example 8: No-Folding Mode
+### Example 9: No-Folding Mode
 
 ```bash
 # Force individual file symlinks
@@ -704,14 +785,19 @@ ls -la ~/.vim/
 
 | Feature | GNU Stow | Stash-CL |
 |---------|----------|----------|
-| Tree Folding | No | Yes (intelligent) |
+| Tree Folding | Basic | Yes (intelligent with partial folding) |
 | Multiple Packages | Yes | Yes (with unfolding) |
 | Conflict Detection | Basic | Comprehensive |
 | Simulation Mode | Yes | Yes |
-| Ignore Patterns | No | Yes (glob + regex) |
+| Ignore Patterns | Yes (file-based) | Yes (file-based glob + CLI regex) |
+| Defer Patterns | Yes | Yes |
+| Override Patterns | Yes | Yes |
 | Task Planning | No | Yes |
 | Verbosity Levels | Limited | 4 levels |
-| Deploy Mode | No | Yes |
+| Deploy Mode | No | Yes (`-d, --deploy`) |
+| List Mode | No | Yes (`-l, --list`) |
+| Import Mode | No | Yes (`-i, --import`) |
+| Adopt Mode | Yes | Yes (`--adopt`) |
 | Performance | Perl | Compiled Lisp |
 
 ---

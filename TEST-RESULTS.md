@@ -1,7 +1,7 @@
 # Stash-CL Test Results
 
 ## Test Session
-**Version**: 0.1.0  
+**Version**: 0.2.0  
 **Status**: All core features tested and verified
 
 ---
@@ -311,12 +311,13 @@ Restash complete!
    - All conflict scenarios tested and working
    - Status: Complete (9/9 tests passing)
 
-3. **Ignore Patterns** ⚠️ PARTIALLY WORKING
+3. **Ignore Patterns** ✅ TESTED
    - Integrated into folding logic
    - Global and local ignore files read correctly
    - Basic glob patterns work (*.log, *.tmp)
-   - Complex patterns need refinement (test-*, *-backup)
-   - Status: Basic functionality implemented, needs more work
+   - Complex patterns work (test-*, *-backup, .git*)
+   - Directory patterns work (temp/*, node_modules/*)
+   - Status: Complete (7/7 tests passing)
 
 4. **Multiple Packages** ✅ TESTED
    - All packages work correctly with unfolding
@@ -365,7 +366,7 @@ Restash complete!
 | Multiple Packages | ✅ PASS | 3 packages work correctly |
 | Package Unfolding | ✅ PASS | Content preserved |
 | No-Folding Mode | ✅ PASS | 5/5 tests passing |
-| Ignore Patterns | ⚠️ PENDING | Not yet tested |
+| Ignore Patterns | ✅ PASS | 7/7 tests passing |
 | Deploy Mode | ✅ PASS | 6/6 tests passing |
 
 ---

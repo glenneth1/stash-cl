@@ -336,4 +336,4 @@ By contributing to stash-cl, you agree that your contributions will be licensed 
 
 ---
 
-Thank you for contributing to stash-cl! 🚀
+Thank you for contributing to stash-cl!

@@ -6,44 +6,74 @@ This document compares the feature set of GNU Stow (the reference implementation
 
 ## Core Features
 
+## Basic Operations
+
 | Feature | GNU Stow | Stash-CL | Status | Notes |
-|---------|----------|----------|--------|-------|
-| **Basic Operations** |
-| Stow packages | ✅ `-S, --stow` | ✅ (default) | ✅ IMPLEMENTED | Default action |
-| Unstow packages | ✅ `-D, --delete` | ✅ `-D, --delete` | ✅ IMPLEMENTED | |
-| Restow packages | ✅ `-R, --restow` | ✅ `-R, --restash` | ✅ IMPLEMENTED | Renamed to "restash" |
-| **Directory Management** |
-| Set stow directory | ✅ `-d, --dir=DIR` | ✅ `--dir=DIR` | ✅ IMPLEMENTED | |
-| Set target directory | ✅ `-t, --target=DIR` | ✅ `-t, --target=DIR` | ✅ IMPLEMENTED | |
-| **Simulation & Verbosity** |
-| Dry-run mode | ✅ `-n, --no, --simulate` | ✅ `-n, --simulate` | ✅ IMPLEMENTED | |
-| Verbose output | ✅ `-v, --verbose[=N]` | ✅ `-v, --verbose` | ✅ IMPLEMENTED | Levels 0-3 |
-| **Tree Folding** |
-| Basic tree folding | ✅ Yes | ✅ Yes | ✅ IMPLEMENTED | |
-| Disable folding | ✅ `--no-folding` | ✅ `--no-folding` | ✅ IMPLEMENTED | |
-| Partial folding | ❌ No | ✅ Yes | ✅ ENHANCEMENT | Keeps subdirs folded when possible |
-| Automatic refolding | ❌ No | ✅ Yes | ✅ ENHANCEMENT | Refolds after unstow |
-| Folding statistics | ❌ No | ✅ Yes | ✅ ENHANCEMENT | Shows detailed folding report |
-| **Conflict Handling** |
-| Detect conflicts | ✅ Yes | ✅ Yes | ✅ IMPLEMENTED | |
-| Adopt files | ✅ `--adopt` | ✅ `--adopt` | ✅ IMPLEMENTED | Move existing files into package |
-| **Ignore Patterns** |
-| Global ignore file | ✅ `.stow-global-ignore` | ✅ `.stash-global-ignore` | ✅ IMPLEMENTED | Renamed |
-| Local ignore file | ✅ `.stow-local-ignore` | ✅ `.stash-local-ignore` | ✅ IMPLEMENTED | Renamed |
-| Regex ignore | ✅ `--ignore=REGEX` | ✅ `--ignore=REGEX` | ✅ IMPLEMENTED | CLI + file patterns combined |
-| Defer patterns | ✅ `--defer=REGEX` | ✅ `--defer=REGEX` | ✅ IMPLEMENTED | Per-operation skip patterns |
-| Override patterns | ✅ `--override=REGEX` | ✅ `--override=REGEX` | ✅ IMPLEMENTED | Force-include ignored files |
-| List packages | ❌ No | ✅ `-l, --list` | ✅ ENHANCEMENT | Shows stashed status per package |
-| Import files | ❌ No | ✅ `-i, --import` | ✅ ENHANCEMENT | Create package from existing files |
-| **Advanced Features** |
-| Deploy mode | ❌ No | ✅ `-d, --deploy` | ✅ ENHANCEMENT | Stow all packages |
-| Task planning | ❌ No | ✅ Yes | ✅ ENHANCEMENT | Validates before executing |
-| Task summary | ❌ No | ✅ Yes | ✅ ENHANCEMENT | Shows planned operations |
-| **Help & Documentation** |
-| Help message | ✅ `-h, --help` | ✅ `-h, --help` | ✅ IMPLEMENTED | |
-| Version info | ✅ `--version` | ✅ `--version` | ✅ IMPLEMENTED | |
-| Man page | ✅ Yes | ✅ Yes | ✅ IMPLEMENTED | Installed via make install |
-| Info manual | ✅ Yes | ❌ No | ⚠️ TODO | Need to create |
+| ------- | -------- | -------- | ------ | ----- |
+| Stow packages | `-S, --stow` | (default) | IMPLEMENTED | Default action |
+| Unstow packages | `-D, --delete` | `-D, --delete` | IMPLEMENTED | |
+| Restow packages | `-R, --restow` | `-R, --restash` | IMPLEMENTED | Renamed to "restash" |
+
+## Directory Management
+
+| Feature | GNU Stow | Stash-CL | Status | Notes |
+| ------- | -------- | -------- | ------ | ----- |
+| Set stow directory | `-d, --dir=DIR` | `--dir=DIR` | IMPLEMENTED | No short flag; `-d` is `--deploy` |
+| Set target directory | `-t, --target=DIR` | `-t, --target=DIR` | IMPLEMENTED | |
+| Set source directory | No | `-s, --source=DIR` | ENHANCEMENT | Alternative to `--dir` |
+
+## Simulation and Verbosity
+
+| Feature | GNU Stow | Stash-CL | Status | Notes |
+| ------- | -------- | -------- | ------ | ----- |
+| Dry-run mode | `-n, --no, --simulate` | `-n, --simulate` | IMPLEMENTED | |
+| Verbose output | `-v, --verbose[=N]` | `-v, --verbose` | IMPLEMENTED | Levels 0-3 |
+
+## Tree Folding
+
+| Feature | GNU Stow | Stash-CL | Status | Notes |
+| ------- | -------- | -------- | ------ | ----- |
+| Basic tree folding | Yes | Yes | IMPLEMENTED | |
+| Disable folding | `--no-folding` | `--no-folding` | IMPLEMENTED | |
+| Partial folding | No | Yes | ENHANCEMENT | Keeps subdirs folded when possible |
+| Automatic refolding | No | Yes | ENHANCEMENT | Refolds after unstow |
+| Folding statistics | No | Yes | ENHANCEMENT | Shows detailed folding report |
+
+## Conflict Handling
+
+| Feature | GNU Stow | Stash-CL | Status | Notes |
+| ------- | -------- | -------- | ------ | ----- |
+| Detect conflicts | Yes | Yes | IMPLEMENTED | |
+| Adopt files | `--adopt` | `--adopt` | IMPLEMENTED | Move existing files into package |
+
+## Ignore Patterns
+
+| Feature | GNU Stow | Stash-CL | Status | Notes |
+| ------- | -------- | -------- | ------ | ----- |
+| Global ignore file | `.stow-global-ignore` | `.stash-global-ignore` | IMPLEMENTED | Renamed |
+| Local ignore file | `.stow-local-ignore` | `.stash-local-ignore` | IMPLEMENTED | Renamed |
+| Regex ignore | `--ignore=REGEX` | `--ignore=REGEX` | IMPLEMENTED | CLI + file patterns combined |
+| Defer patterns | `--defer=REGEX` | `--defer=REGEX` | IMPLEMENTED | Per-operation skip patterns |
+| Override patterns | `--override=REGEX` | `--override=REGEX` | IMPLEMENTED | Force-include ignored files |
+
+## Stash-CL Enhancements (Not in GNU Stow)
+
+| Feature | Stash-CL | Status | Notes |
+| ------- | -------- | ------ | ----- |
+| List packages | `-l, --list` | ENHANCEMENT | Shows stashed status per package |
+| Import files | `-i, --import` | ENHANCEMENT | Create package from existing files |
+| Deploy mode | `-d, --deploy` | ENHANCEMENT | Stash all packages at once |
+| Task planning | Yes | ENHANCEMENT | Validates before executing |
+| Task summary | Yes | ENHANCEMENT | Shows planned operations |
+
+## Help and Documentation
+
+| Feature | GNU Stow | Stash-CL | Status | Notes |
+| ------- | -------- | -------- | ------ | ----- |
+| Help message | `-h, --help` | `-h, --help` | IMPLEMENTED | |
+| Version info | `--version` | `-V, --version` | IMPLEMENTED | |
+| Man page | Yes | Yes | IMPLEMENTED | Installed via make install |
+| Info manual | Yes | No | TODO | Need to create |
 
 ## Implementation Status Summary
 
@@ -70,7 +100,7 @@ This document compares the feature set of GNU Stow (the reference implementation
 - **CLI Ignore Patterns**: Combine CLI `--ignore` flags with file-based patterns
 
 ### ⚠️ Not Yet Implemented
-- Info manual documentation
+- Info manual (Texinfo documentation)
 
 ### 🔄 Differences from GNU Stow
 - **Renamed operations**: "restow" → "restash" (for consistency with "stash")
@@ -100,19 +130,19 @@ This document compares the feature set of GNU Stow (the reference implementation
 ## Priority for Future Development
 
 ### High Priority
-1. ✅ Complete core stow/unstow/restow (DONE)
-2. ✅ Tree folding (DONE)
-3. ⚠️ Comprehensive testing suite
-4. ⚠️ Bug fixes from testing
+1. Complete core stow/unstow/restow (DONE)
+2. Tree folding (DONE)
+3. Comprehensive testing suite (DONE)
+4. Bug fixes from testing (DONE)
 
 ### Medium Priority
-1. `--adopt` flag implementation
-2. `--ignore=REGEX` CLI flag
-3. Better error messages
-4. Man page documentation
+1. `--adopt` flag implementation (DONE)
+2. `--ignore=REGEX` CLI flag (DONE)
+3. Better error messages (DONE)
+4. Man page documentation (DONE)
 
 ### Low Priority
-1. `--defer` and `--override` flags
+1. `--defer` and `--override` flags (DONE)
 2. Info manual
 3. Performance optimizations
 4. Additional enhancements
@@ -133,4 +163,4 @@ For users migrating from GNU Stow:
 
 ## Conclusion
 
-Stash-CL matches or exceeds GNU Stow on all core features. The only remaining gaps are `--defer` and `--override` (niche pattern flags). Stash-CL adds several enhancements GNU Stow lacks: list mode, import mode, adopt mode, CLI ignore patterns, smart partial folding, automatic refolding, folding statistics, deploy mode, and a task planning system that validates operations before executing.
+Stash-CL matches or exceeds GNU Stow on all core features, including `--defer` and `--override` pattern flags. Stash-CL adds several enhancements GNU Stow lacks: list mode, import mode, deploy mode, CLI ignore patterns, smart partial folding, automatic refolding, folding statistics, and a task planning system that validates operations before executing. The only remaining gap is the Texinfo info manual.

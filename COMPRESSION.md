@@ -182,15 +182,3 @@ SBCL + UPX --ultra-brute:     ~15 MB  (~12%)
 ```
 
 Actual results may vary based on code and dependencies.
-
-## Known Limitation: SBCL Runtime Flags
-
-SBCL's runtime intercepts `--version` and `--help` flags before the application code runs, displaying SBCL's own version/help instead of the application's. This is standard SBCL behavior when building standalone executables.
-
-**Workaround options:**
-
-1. **Use short flags**: `-h` works correctly for help
-2. **Use the wrapper script**: `stash-wrapper.sh` intercepts these flags and handles them correctly
-3. **Accept the limitation**: Document that `--version` shows SBCL version
-
-The application is fully functional - this only affects these two specific flags.

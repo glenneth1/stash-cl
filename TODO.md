@@ -1,7 +1,7 @@
 # Stash-CL TODO List
 
 ## Project Status
-**Current Version**: 0.1.0  
+**Current Version**: 0.2.0  
 **Core Features**: ✅ Complete  
 **Production Ready**: Yes (for most use cases)
 
@@ -167,19 +167,13 @@
 
 ### Low Priority Features
 
-- [ ] **Implement `--defer=REGEX` flag** (LOW)
+- [x] **Implement `--defer=REGEX` flag** (LOW) ✅ COMPLETE
   - Defer certain patterns during stowing
   - Useful for complex package management
-  - **Estimated**: 2-3 hours
-  - **Complexity**: Low
-  - **User Impact**: Low (niche use case)
 
-- [ ] **Implement `--override=REGEX` flag** (LOW)
+- [x] **Implement `--override=REGEX` flag** (LOW) ✅ COMPLETE
   - Override ignore patterns
   - Allow forcing certain files
-  - **Estimated**: 2-3 hours
-  - **Complexity**: Low
-  - **User Impact**: Low (niche use case)
 
 - [ ] **Add `--paranoid` mode** (LOW)
   - Extra safety checks
@@ -349,17 +343,16 @@
 
 ## Success Metrics
 
-### Version 0.2.0 Goals (End of Phase 1)
-- [ ] 100% test coverage of existing features
-- [ ] Zero known bugs
-- [ ] All core features tested and documented
+### Version 0.2.0 Goals (Current Release)
+- [x] 100% test coverage of existing features
+- [x] Zero known bugs
+- [x] All core features tested and documented
+- [x] `--adopt` flag implemented and tested
+- [x] Man page complete
+- [x] `--ignore=REGEX` implemented
+- [x] `--defer` and `--override` implemented
 
-### Version 0.3.0 Goals (End of Phase 2)
-- [ ] `--adopt` flag implemented and tested
-- [ ] Man page complete
-- [ ] `--ignore=REGEX` implemented
-
-### Version 1.0.0 Goals (End of Phase 3)
+### Version 1.0.0 Goals
 - [ ] Feature parity with GNU Stow (all essential features)
 - [ ] Comprehensive documentation
 - [ ] Available in package managers
@@ -396,4 +389,4 @@ Want to help? Pick an item from Priority 1 or 2 and submit a PR!
 - Priority levels may change based on user feedback
 - Community contributions can accelerate timeline significantly
 
-**Last Updated**: December 4, 2025
+**Last Updated**: August 2026
