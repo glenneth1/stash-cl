@@ -239,16 +239,39 @@
            #:print-folding-stats
            #:read-symlink))
 
+(defpackage #:stash-cl/config
+  (:use #:cl)
+  (:export #:stash-config
+           #:stash-config-dir
+           #:stash-config-target
+           #:stash-config-source
+           #:stash-config-verbose
+           #:stash-config-no-folding
+           #:stash-config-ignore-patterns
+           #:stash-config-defer-patterns
+           #:stash-config-override-patterns
+           #:load-config-file
+           #:merge-config-with-options
+           #:find-config-file
+           #:config-file-paths
+           #:parse-config-line))
+
 (defpackage #:stash-cl/help
   (:use #:cl)
   (:export #:display-help
-           #:display-version))
+           #:display-version
+           #:display-completion))
 
 (defpackage #:stash-cl
   (:use #:cl)
   (:import-from #:stash-cl/help
                 #:display-help
-                #:display-version)
+                #:display-version
+                #:display-completion)
+  (:import-from #:stash-cl/config
+                #:load-config-file
+                #:merge-config-with-options
+                #:find-config-file)
   (:import-from #:stash-cl/file-ops
                 #:file-is-regular-p
                 #:file-is-directory-p

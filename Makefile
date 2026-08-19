@@ -1,6 +1,6 @@
 # Makefile for stash-cl
 
-.PHONY: all build stash clean test compress compress-max install-upx install install-man uninstall
+.PHONY: all build stash clean test test-unit test-integration compress compress-max install-upx install install-man uninstall help
 
 all: build
 
@@ -62,8 +62,17 @@ clean:
 	rm -rf ~/.cache/common-lisp/sbcl-*-linux-x64/home/$(USER)/SourceCode/stash-cl/
 
 test: build
-	@echo "Running tests..."
-	./test-cli-integration.sh
+	@echo "Running all tests..."
+	$(MAKE) test-unit
+	$(MAKE) test-integration
+
+test-unit:
+	@echo "Running unit tests..."
+	sbcl --non-interactive --load test-unit.lisp
+
+test-integration: build
+	@echo "Running integration tests..."
+	./test-integration.sh
 
 # Installation
 PREFIX ?= /usr/local
@@ -102,5 +111,7 @@ help:
 	@echo "  make uninstall    - Remove installed files"
 	@echo "  make install-upx  - Install UPX compression tool"
 	@echo "  make clean        - Remove build artifacts"
-	@echo "  make test         - Run integration tests"
+	@echo "  make test         - Run all tests (unit + integration)"
+	@echo "  make test-unit    - Run unit tests only"
+	@echo "  make test-integration - Run integration tests only"
 	@echo "  make help         - Show this help"

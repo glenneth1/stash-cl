@@ -112,7 +112,22 @@
   (:name :list
    :description "List all packages and their stashed status"
    :short #\l
-   :long "list"))
+   :long "list")
+  
+  (:name :conflicts
+   :description "List all conflicts without taking action"
+   :long "conflicts")
+  
+  (:name :interactive
+   :description "Interactive mode (prompt on conflicts)"
+   :short #\I
+   :long "interactive")
+  
+  (:name :completion
+   :description "Output shell completion script (bash, zsh, or fish)"
+   :long "completion"
+   :arg-parser #'identity
+   :meta-var "SHELL"))
 
 ;;; Helper Functions
 
@@ -151,7 +166,233 @@ Excludes dot-directories (e.g. .git) which are not stash packages."
       (namestring (uiop:pathname-parent-directory-pathname 
                    (uiop:ensure-directory-pathname stash-dir)))))
 
-;;; Core Handler Functions
+;;; Progress indicator
+
+(defvar *progress-total* 0)
+(defvar *progress-current* 0)
+
+(defun progress-start (total)
+  "Start a progress counter with TOTAL items."
+  (setf *progress-total* total)
+  (setf *progress-current* 0))
+
+(defun progress-tick (label)
+  "Advance progress by one and display status."
+  (incf *progress-current*)
+  (when (and *progress-total* (> *progress-total* 0)
+             (>= *folding-verbosity* 1))
+    (let ((pct (floor (* 100 *progress-current*) *progress-total*)))
+      (format t "\r  [~D/~D] ~D% ~A..."
+              *progress-current* *progress-total* pct label)
+      (when (= *progress-current* *progress-total*)
+        (format t "~%"))
+      (force-output))))
+
+;;; Conflict listing mode
+
+(defun handle-conflicts (package stash-dir target-dir &key cli-patterns defer-patterns override-patterns)
+  "Plan stashing PACKAGE but only report conflicts, do not execute."
+  (format t "~%Checking conflicts for package: ~A~%" package)
+  (format t "  From: ~A~%" stash-dir)
+  (format t "  To: ~A~%~%" target-dir)
+  
+  (init-planner stash-dir target-dir)
+  
+  (let ((package-path (resolve-package-path package stash-dir)))
+    (handler-case
+        (progn
+          (stash-package-with-folding package-path target-dir
+                                       :cli-patterns cli-patterns
+                                       :defer-patterns defer-patterns
+                                       :override-patterns override-patterns)
+          ;; Check conflicts
+          (let ((conflicts (stash-cl/task-planner:get-conflicts)))
+            (if conflicts
+                (progn
+                  (format t "~A~%" (stash-cl/colors:color-yellow "Conflicts detected:"))
+                  (dolist (c conflicts)
+                    (format t "  - ~A~@[ (~A)~]~%"
+                            (getf c :message)
+                            (getf c :path)))
+                  (format t "~%~D conflict(s) found~%~%" (length conflicts))
+                  (uiop:quit 1))
+                (progn
+                  (format t "~A No conflicts detected~%~%"
+                          (stash-cl/colors:color-green "OK:"))
+                  (uiop:quit 0)))))
+      (stash-cl/task-planner:conflict-error (c)
+        (format t "~A~%" (stash-cl/colors:color-yellow "Conflicts detected:"))
+        (format t "  - ~A (~A)~%" (stash-cl/task-planner:conflict-error-message c)
+                (stash-cl/task-planner:conflict-error-path c))
+        ;; Also check for any accumulated conflicts
+        (let ((more (stash-cl/task-planner:get-conflicts)))
+          (dolist (c more)
+            (format t "  - ~A~@[ (~A)~]~%"
+                    (getf c :message)
+                    (getf c :path)))
+          (format t "~%~D conflict(s) found~%~%" (1+ (length more))))
+        (uiop:quit 1)))))
+
+;;; Interactive conflict resolution
+
+(defun prompt-yes-no (prompt)
+  "Prompt user with PROMPT for yes/no. Returns T or NIL."
+  (format t "~A [y/N]: " prompt)
+  (force-output)
+  (let* ((response (string-trim '(#\Space #\Tab #\Newline #\Return)
+                               (read-line)))
+         (first-char (if (string= response "")
+                         #\n
+                         (char-downcase (char response 0)))))
+    (member first-char '(#\y))))
+
+(defun prompt-choice (prompt &rest choices)
+  "Prompt user with PROMPT and CHOICES (list of strings).
+Returns the selected choice string."
+  (format t "~A~%" prompt)
+  (loop for i from 1
+        for choice in choices
+        do (format t "  ~D. ~A~%" i choice))
+  (format t "Choice: ")
+  (force-output)
+  (let ((choice-num (parse-integer (string-trim '(#\Space #\Tab #\Newline #\Return)
+                                                (read-line))
+                                   :junk-allowed t)))
+    (if (and choice-num
+             (>= choice-num 1)
+             (<= choice-num (length choices)))
+        (nth (1- choice-num) choices)
+        (progn
+          (format t "Invalid choice. Please try again.~%")
+          (apply #'prompt-choice prompt choices)))))
+
+(defun show-file-diff (target-file package-file)
+  "Show a brief diff between TARGET-FILE and PACKAGE-FILE."
+  (handler-case
+      (let ((output (uiop:run-program (list "diff" "--color=auto" target-file package-file)
+                                      :output :string
+                                      :ignore-error-status t)))
+        (when (and output (not (string= (string-trim '(#\Newline #\Return #\Space) output) "")))
+          (format t "~A~%" output)))
+    (error ()
+      (format t "  (files differ)~%"))))
+
+(defun handle-stash-interactive (package stash-dir target-dir &key simulate cli-patterns defer-patterns override-patterns)
+  "Stash PACKAGE with interactive conflict resolution."
+  (format t "~%Stashing package (interactive): ~A~%" package)
+  (format t "  From: ~A~%" stash-dir)
+  (format t "  To: ~A~%~%" target-dir)
+  
+  (init-planner stash-dir target-dir)
+  
+  (let ((package-path (resolve-package-path package stash-dir)))
+    (handler-case
+        (progn
+          (stash-package-with-folding package-path target-dir
+                                       :cli-patterns cli-patterns
+                                       :defer-patterns defer-patterns
+                                       :override-patterns override-patterns)
+          ;; No conflicts, proceed normally
+          (execute-all-tasks :simulate simulate)
+          (print-folding-stats))
+      ;; Conflict detected during planning
+      (stash-cl/task-planner:conflict-error (c)
+        (let ((conflicts (stash-cl/task-planner:get-conflicts)))
+          (format t "~%~A~%" (stash-cl/colors:color-yellow "Conflict detected:"))
+          (format t "  ~A~%" (stash-cl/task-planner:conflict-error-message c))
+          (when conflicts
+            (dolist (c2 conflicts)
+              (format t "  - ~A~@[ (~A)~]~%"
+                      (getf c2 :message)
+                      (getf c2 :path))))
+          (format t "~%")
+          (let ((action (prompt-choice "How would you like to proceed?"
+                                       "Skip this package"
+                                       "Simulate (show what would happen)"
+                                       "Abort")))
+            (cond
+              ((string= action "Skip this package")
+               (format t "Skipping ~A~%" package))
+              ((string= action "Simulate (show what would happen)")
+               (stash-cl/task-planner:reset-planner)
+               (init-planner stash-dir target-dir)
+               (handler-case
+                   (progn
+                     (stash-package-with-folding package-path target-dir
+                                                  :cli-patterns cli-patterns
+                                                  :defer-patterns defer-patterns
+                                                  :override-patterns override-patterns)
+                     (execute-all-tasks :simulate t))
+                 (stash-cl/task-planner:conflict-error ()
+                   (format t "~%Conflicts still present in simulation.~%"))))
+              ((string= action "Abort")
+               (format t "Aborted.~%")
+               (uiop:quit 1)))))))))
+
+(defun handle-adopt-interactive (package-path target-dir &key simulate)
+  "Adopt files interactively, prompting for each file."
+  (let ((adopted-count 0)
+        (skipped-count 0)
+        (package-path-normalized (uiop:ensure-directory-pathname package-path))
+        (target-dir-normalized (uiop:ensure-directory-pathname target-dir)))
+    
+    (format t "~%~A~%" (stash-cl/colors:format-warning "Interactive adoption mode"))
+    (format t "You will be prompted for each file.~%~%")
+    
+    (labels ((adopt-file (target-file rel-path-str)
+               (let ((package-file (concatenate 'string
+                                               (namestring package-path-normalized)
+                                               rel-path-str)))
+                 ;; Show what we found
+                 (format t "~A: ~A~%" (stash-cl/colors:color-yellow "Found") rel-path-str)
+                 
+                 ;; If both exist, show diff
+                 (when (and (probe-file target-file)
+                            (probe-file package-file))
+                   (show-file-diff (namestring target-file) package-file))
+                 
+                 (let ((action (prompt-choice "Action?"
+                                              "Adopt (move to package)"
+                                              "Skip"
+                                              "Abort")))
+                   (cond
+                     ((string= action "Adopt (move to package)")
+                      (if simulate
+                          (format t "  Would adopt: ~A~%" rel-path-str)
+                          (progn
+                            (ensure-directories-exist package-file)
+                            (let* ((abs-target (truename target-file))
+                                   (abs-package (merge-pathnames package-file)))
+                              (uiop:rename-file-overwriting-target abs-target abs-package)
+                              (format t "  ~A ~A~%"
+                                      (stash-cl/colors:color-green "Adopted:")
+                                      rel-path-str))))
+                      (incf adopted-count))
+                     ((string= action "Skip")
+                      (format t "  Skipped: ~A~%" rel-path-str)
+                      (incf skipped-count))
+                     ((string= action "Abort")
+                      (format t "~%Adoption aborted.~%")
+                      (return-from handle-adopt-interactive adopted-count))))))
+             
+             (scan-target-directory (tgt-dir rel-prefix-str)
+               (when (probe-file tgt-dir)
+                 (dolist (tgt-file (uiop:directory-files tgt-dir))
+                   (let* ((filename (file-namestring tgt-file))
+                          (rel-path-str (concatenate 'string rel-prefix-str filename)))
+                     (when (not (file-is-symlink-p (namestring tgt-file)))
+                       (adopt-file tgt-file rel-path-str))))
+                 (dolist (tgt-subdir (uiop:subdirectories tgt-dir))
+                   (let* ((dirname (car (last (pathname-directory tgt-subdir))))
+                          (new-rel-prefix-str (concatenate 'string rel-prefix-str dirname "/")))
+                     (scan-target-directory tgt-subdir new-rel-prefix-str))))))
+      
+      (scan-target-directory target-dir-normalized "")
+      
+      (format t "~%~A: ~D adopted, ~D skipped~%~%"
+              (stash-cl/colors:format-success "Done")
+              adopted-count skipped-count)
+      adopted-count)))
 
 (defun adopt-existing-files (package-path target-dir &key simulate)
   "Adopt existing files from TARGET-DIR into PACKAGE-PATH.
@@ -493,87 +734,125 @@ moves the source into the package, and creates a symlink back."
             (display-version)
             (uiop:quit 0))
           
-          ;; Get options
-          (let* ((simulate (getf options :simulate))
-                 (no-folding (getf options :no-folding))
-                 (delete (getf options :delete))
-                 (restash (getf options :restash))
-                 (deploy (getf options :deploy))
-                 (list-mode (getf options :list))
-                 (adopt (getf options :adopt))
-                 (import-path (getf options :import))
-                 (package-name (getf options :package))
-                 ;; Count verbose flags manually since unix-opts doesn't handle -vv properly
-                 (verbosity (count :verbose options))
-                 (stash-dir (getf options :dir (namestring (uiop:getcwd))))
-                 (recursive-p (getf options :recursive))
-                 (source (getf options :source))
-                 (target (getf options :target))
-                 ;; Collect all --ignore patterns
-                 (cli-ignore-patterns (loop for (key val) on options by #'cddr
-                                           when (eq key :ignore)
-                                           collect val))
-                 (cli-defer-patterns (loop for (key val) on options by #'cddr
-                                          when (eq key :defer)
-                                          collect val))
-                 (cli-override-patterns (loop for (key val) on options by #'cddr
-                                             when (eq key :override)
+          ;; Handle completion output
+          (when (getf options :completion)
+            (display-completion (getf options :completion))
+            (uiop:quit 0))
+          
+          ;; Load config file and merge with CLI options
+          (let* ((config (load-config-file))
+                 (options (merge-config-with-options config options)))
+            
+            ;; Get options
+            (let* ((simulate (getf options :simulate))
+                   (no-folding (getf options :no-folding))
+                   (delete (getf options :delete))
+                   (restash (getf options :restash))
+                   (deploy (getf options :deploy))
+                   (list-mode (getf options :list))
+                   (adopt (getf options :adopt))
+                   (conflicts-mode (getf options :conflicts))
+                   (interactive (getf options :interactive))
+                   (import-path (getf options :import))
+                   (package-name (getf options :package))
+                   ;; Count verbose flags manually since unix-opts doesn't handle -vv properly
+                   (verbosity (count :verbose options))
+                   (stash-dir (getf options :dir (namestring (uiop:getcwd))))
+                   (recursive-p (getf options :recursive))
+                   (source (getf options :source))
+                   (target (getf options :target))
+                   ;; Collect all --ignore patterns
+                   (cli-ignore-patterns (loop for (key val) on options by #'cddr
+                                             when (eq key :ignore)
                                              collect val))
-                 (packages free-args))
-            
-            ;; Set folding options
-            (setf *folding-enabled* (not no-folding))
-            (setf *folding-verbosity* verbosity)
-            
-            ;; Resolve directories
-            (setf stash-dir (expand-home stash-dir))
-            (let ((target-dir (resolve-target-path target stash-dir)))
+                   (cli-defer-patterns (loop for (key val) on options by #'cddr
+                                            when (eq key :defer)
+                                            collect val))
+                   (cli-override-patterns (loop for (key val) on options by #'cddr
+                                               when (eq key :override)
+                                               collect val))
+                   (packages free-args))
               
-              (cond
-                ;; List mode - show all packages and their status
-                (list-mode
-                 (handle-list stash-dir target-dir))
+              ;; Set folding options
+              (setf *folding-enabled* (not no-folding))
+              (setf *folding-verbosity* verbosity)
+              
+              ;; Resolve directories
+              (setf stash-dir (expand-home stash-dir))
+              (let ((target-dir (resolve-target-path target stash-dir)))
                 
-                ;; Import mode - import existing file/directory into a package
-                (import-path
-                 (if package-name
-                     (handle-import import-path package-name stash-dir target-dir :simulate simulate)
-                     (format t "~A~%" (stash-cl/colors:format-error 
-                                       "Package name required for import" 
-                                       "Try: stash --import ~/.bashrc --package bash"))))
-                
-                ;; Deploy mode
-                (deploy
-                 (handle-deploy stash-dir target-dir :simulate simulate))
-                
-                ;; Restash mode
-                (restash
-                 (if packages
-                     (dolist (pkg packages)
-                       (handle-restash pkg stash-dir target-dir :simulate simulate))
-                     (format t "~A~%" (stash-cl/colors:format-error "No packages specified for restash" "Try: stash -R PACKAGE"))))
-                
-                ;; Unstash mode
-                (delete
-                 (if packages
-                     (dolist (pkg packages)
-                       (handle-unstash-with-refolding pkg stash-dir target-dir :simulate simulate))
-                     (format t "~A~%" (stash-cl/colors:format-error "No packages specified for unstash" "Try: stash -D PACKAGE"))))
-                
-                ;; Stash mode (default)
-                (packages
-                 (dolist (pkg packages)
-                   (handle-stash-with-folding pkg stash-dir target-dir 
-                                             :simulate simulate 
-                                             :adopt adopt
-                                             :cli-patterns cli-ignore-patterns
-                                             :defer-patterns cli-defer-patterns
-                                             :override-patterns cli-override-patterns)))
-                
-                ;; No action specified
-                (t
-                 (format t "~A~%" (stash-cl/colors:format-error "No packages specified" "Try: stash PACKAGE or stash -h for help"))
-                 (uiop:quit 1))))))
+                (cond
+                  ;; List mode - show all packages and their status
+                  (list-mode
+                   (handle-list stash-dir target-dir))
+                  
+                  ;; Import mode - import existing file/directory into a package
+                  (import-path
+                   (if package-name
+                       (handle-import import-path package-name stash-dir target-dir :simulate simulate)
+                       (format t "~A~%" (stash-cl/colors:format-error 
+                                         "Package name required for import" 
+                                         "Try: stash --import ~/.bashrc --package bash"))))
+                  
+                  ;; Deploy mode
+                  (deploy
+                   (handle-deploy stash-dir target-dir :simulate simulate))
+                  
+                  ;; Restash mode
+                  (restash
+                   (if packages
+                       (dolist (pkg packages)
+                         (handle-restash pkg stash-dir target-dir :simulate simulate))
+                       (format t "~A~%" (stash-cl/colors:format-error "No packages specified for restash" "Try: stash -R PACKAGE"))))
+                  
+                  ;; Unstash mode
+                  (delete
+                   (if packages
+                       (dolist (pkg packages)
+                         (handle-unstash-with-refolding pkg stash-dir target-dir :simulate simulate))
+                       (format t "~A~%" (stash-cl/colors:format-error "No packages specified for unstash" "Try: stash -D PACKAGE"))))
+                  
+                  ;; Conflicts mode - list conflicts without action
+                  (conflicts-mode
+                   (if packages
+                       (dolist (pkg packages)
+                         (handle-conflicts pkg stash-dir target-dir
+                                           :cli-patterns cli-ignore-patterns
+                                           :defer-patterns cli-defer-patterns
+                                           :override-patterns cli-override-patterns))
+                       (format t "~A~%" (stash-cl/colors:format-error "No packages specified" "Try: stash --conflicts PACKAGE"))))
+                  
+                  ;; Stash mode (default)
+                  (packages
+                   (dolist (pkg packages)
+                     (if interactive
+                         ;; Interactive mode with adopt
+                         (if adopt
+                             (let ((package-path (resolve-package-path pkg stash-dir)))
+                               (handle-adopt-interactive package-path target-dir :simulate simulate)
+                               (handle-stash-interactive pkg stash-dir target-dir
+                                                         :simulate simulate
+                                                         :cli-patterns cli-ignore-patterns
+                                                         :defer-patterns cli-defer-patterns
+                                                         :override-patterns cli-override-patterns))
+                             ;; Interactive without adopt
+                             (handle-stash-interactive pkg stash-dir target-dir
+                                                       :simulate simulate
+                                                       :cli-patterns cli-ignore-patterns
+                                                       :defer-patterns cli-defer-patterns
+                                                       :override-patterns cli-override-patterns))
+                         ;; Normal (non-interactive) mode
+                         (handle-stash-with-folding pkg stash-dir target-dir 
+                                                   :simulate simulate 
+                                                   :adopt adopt
+                                                   :cli-patterns cli-ignore-patterns
+                                                   :defer-patterns cli-defer-patterns
+                                                   :override-patterns cli-override-patterns))))
+                  
+                  ;; No action specified
+                  (t
+                   (format t "~A~%" (stash-cl/colors:format-error "No packages specified" "Try: stash PACKAGE or stash -h for help"))
+                   (uiop:quit 1)))))))
       
       (opts:unknown-option (condition)
         (format t "~A~%" (stash-cl/colors:format-error (format nil "Unknown option: ~A" (opts:option condition)) "Use -h to see available options"))

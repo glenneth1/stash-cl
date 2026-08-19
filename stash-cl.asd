@@ -4,7 +4,7 @@
   :description "GNU Stow replacement written in Common Lisp - manage dotfiles and symlinks"
   :author "Glenn <glenn@example.com>"
   :license "GPL-3.0"
-  :version "0.2.0"
+  :version "0.3.0"
   :serial t
   :depends-on (#:uiop
                #:unix-opts
@@ -18,6 +18,7 @@
                  (:file "colors")
                  (:file "log")
                  (:file "paths")
+                 (:file "config")
                  (:file "conflict")
                  (:file "file-ops")
                  (:file "package-mgmt")

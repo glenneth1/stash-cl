@@ -1,4 +1,4 @@
-.TH STASH 1 "August 2026" "stash-cl 0.2.0" "User Commands"
+.TH STASH 1 "August 2026" "stash-cl 0.3.0" "User Commands"
 .SH NAME
 stash \- manage dotfiles and symlinks with intelligent tree folding
 .SH SYNOPSIS
@@ -56,6 +56,18 @@ or directory will be placed in a package with this name.
 Adopt existing files in the target directory into the package. This moves
 existing files into the package directory and replaces them with symlinks.
 Useful for converting existing configurations into a managed package.
+.SS "Conflict and Interactive Options"
+.TP
+.B \-\-conflicts
+List all conflicts that would occur when stashing the specified packages
+without actually performing any action. Useful for checking before stashing.
+Exits with code 0 if no conflicts, 1 if conflicts are found.
+.TP
+.B \-I, \-\-interactive
+Interactive mode. When conflicts are detected, prompt the user for how to
+proceed (skip, simulate, or abort). When used with \fB\-\-adopt\fR, prompts
+for each file with options to adopt, skip, or abort, and shows diffs before
+adopting.
 .SS "Directory Options"
 .TP
 .BI "\-\-dir=" DIR
@@ -95,6 +107,27 @@ detailed output:
 Disable tree folding. Create individual symlinks for each file instead
 of folding directories. This is useful when you need fine-grained control
 over which files are symlinked.
+.SS "Shell Completion"
+.TP
+.BI "\-\-completion=" SHELL
+Output a shell completion script for the specified shell. Supported shells:
+.RS
+.IP \(bu 2
+\fBbash\fR - Bash completion with package name and option completion
+.IP \(bu 2
+\fBzsh\fR - Zsh completion with descriptions for all options
+.IP \(bu 2
+\fBfish\fR - Fish completion with descriptions for all options
+.RE
+.PP
+To install, add to your shell config:
+.nf
+.RS
+eval "$(stash --completion=bash)"   # Bash
+eval "$(stash --completion=zsh)"    # Zsh
+eval "$(stash --completion=fish)"   # Fish
+.RE
+.fi
 .SS "Help Options"
 .TP
 .B \-h, \-\-help
@@ -268,7 +301,56 @@ Create individual file symlinks instead of folding:
 stash \-\-no\-folding perl
 .RE
 .fi
+.SH "CONFIGURATION FILE"
+.B stash
+automatically reads configuration from the first existing file in this order:
+.TP
+.I $XDG_CONFIG_HOME/stash/config
+XDG configuration directory (default: ~/.config/stash/config)
+.TP
+.I ~/.stashrc
+Fallback configuration file in home directory
+.SS "Config File Format"
+The config file uses simple \fBkey = value\fR lines. Lines starting with # are
+comments. Supported keys:
+.RS
+.IP \(bu 2
+\fBdir\fR = PATH - Default stash directory
+.IP \(bu 2
+\fBtarget\fR = PATH - Default target directory
+.IP \(bu 2
+\fBsource\fR = PATH - Default source directory
+.IP \(bu 2
+\fBverbose\fR = N - Default verbosity level (0-3)
+.IP \(bu 2
+\fBno\-folding\fR = true|false - Disable tree folding by default
+.IP \(bu 2
+\fBignore\fR = REGEX - Default ignore pattern (can be repeated)
+.IP \(bu 2
+\fBdefer\fR = REGEX - Default defer pattern (can be repeated)
+.IP \(bu 2
+\fBoverride\fR = REGEX - Default override pattern (can be repeated)
+.RE
+.PP
+Command-line options always override config file values.
+.SS "Example Config"
+.nf
+.RS
+# ~/.config/stash/config
+dir = ~/dotfiles
+target = ~
+verbose = 1
+ignore = .*\.bak
+ignore = .*~
+.RE
+.fi
 .SH FILES
+.TP
+.I $XDG_CONFIG_HOME/stash/config
+Configuration file (XDG path)
+.TP
+.I ~/.stashrc
+Configuration file (fallback)
 .TP
 .I ~/.stash\-global\-ignore
 Global ignore patterns file
@@ -301,7 +383,15 @@ with glob patterns
 \fBDetailed statistics\fR: Shows exactly what was folded, unfolded, and
 symlinked
 .IP \(bu 2
-\fBSmaller footprint\fR: Single 14MB executable vs Perl + dependencies
+\fBSmaller footprint\fR: Single 16MB executable vs Perl + dependencies
+.IP \(bu 2
+\fBConfiguration file\fR: Set defaults in ~/.config/stash/config or ~/.stashrc
+.IP \(bu 2
+\fBShell completion\fR: Built-in bash, zsh, and fish completion via --completion=SHELL
+.IP \(bu 2
+\fBConflict checking\fR: --conflicts flag lists conflicts without taking action
+.IP \(bu 2
+\fBInteractive mode\fR: --interactive flag prompts on conflicts with diff display
 .SH BUGS
 Report bugs to: https://github.com/glenneth1/stash-cl/issues
 .SH AUTHOR

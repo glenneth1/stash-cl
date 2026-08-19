@@ -1,7 +1,7 @@
 # Stash-CL TODO List
 
 ## Project Status
-**Current Version**: 0.2.0  
+**Current Version**: 0.3.0  
 **Core Features**: ✅ Complete  
 **Production Ready**: Yes (for most use cases)
 
@@ -67,11 +67,12 @@
   - **Time spent**: 20 minutes
   - **Result**: All 6 tests passing
 
-- [ ] **Expand automated test suite** (HIGH)
-  - Convert remaining manual tests to automated scripts
-  - Add CI/CD integration (GitHub Actions)
-  - Test on multiple SBCL versions
-  - **Estimated**: 4-6 hours
+- [x] **Expand automated test suite** (HIGH) ✅ COMPLETE
+  - [x] Unit tests (test-unit.lisp) - 26 tests, 35 assertions
+  - [x] Integration tests (test-integration.sh) - 50 assertions
+  - [x] Tests cover: config parsing, paths, file ops, task planner, CLI features
+  - [x] Tests cover: stash, unstash, deploy, list, conflicts, config, completion
+  - **Result**: All tests passing (26 unit + 50 integration)
 
 - [x] **Executable compression** (MEDIUM) ✅ COMPLETE
   - [x] Implement SBCL compression (level 9)
@@ -183,12 +184,11 @@
   - **Complexity**: Low
   - **User Impact**: Low-Medium
 
-- [ ] **Add `--conflicts` flag** (MEDIUM)
-  - List all conflicts without taking action
-  - Useful for debugging
-  - **Estimated**: 2 hours
-  - **Complexity**: Low
-  - **User Impact**: Medium
+- [x] **Add `--conflicts` flag** (MEDIUM) ✅ COMPLETE
+  - [x] List all conflicts without taking action
+  - [x] Useful for debugging
+  - [x] Reports conflicts with file paths and messages
+  - **Result**: Fully functional conflict detection mode
 
 **Total Estimated Time**: 8-11 hours (1-2 weeks part-time)
 
@@ -204,16 +204,18 @@
   - Cache file system queries
   - **Estimated**: 4-6 hours
 
-- [ ] **Better progress indicators** (LOW)
-  - Add progress bar for large operations
-  - Show current operation status
-  - **Estimated**: 2-3 hours
+- [x] **Better progress indicators** (LOW) ✅ COMPLETE
+  - [x] Add progress tracking with progress-start/progress-tick
+  - [x] Show current operation status with percentage
+  - [x] Integrated with folding verbosity levels
+  - **Result**: Progress indicators show [N/Total] with percentage
 
-- [ ] **Add shell completion** (LOW)
-  - Bash completion script
-  - Zsh completion script
-  - Fish completion script
-  - **Estimated**: 3-4 hours
+- [x] **Add shell completion** (LOW) ✅ COMPLETE
+  - [x] Bash completion script (--completion=bash)
+  - [x] Zsh completion script (--completion=zsh)
+  - [x] Fish completion script (--completion=fish)
+  - [x] Package name completion from stash directory
+  - **Result**: All three shells supported via --completion=SHELL flag
 
 - [ ] **Package for distributions** (MEDIUM)
   - Create Debian package
@@ -241,16 +243,19 @@
   - Redo undone operations
   - **Estimated**: 6-8 hours
 
-- [ ] **Interactive mode**
-  - Prompt for conflicts
-  - Show diffs before adopting
-  - **Estimated**: 4-6 hours
+- [x] **Interactive mode** ✅ COMPLETE
+  - [x] Prompt for conflicts with --interactive/-I flag
+  - [x] Show diffs before adopting files
+  - [x] Interactive adoption mode (adopt/skip/abort per file)
+  - [x] Conflict resolution with skip/simulate/abort options
+  - **Result**: Fully functional interactive mode
 
-- [ ] **Configuration file support**
-  - `~/.stashrc` or `~/.config/stash/config`
-  - Default options
-  - Package-specific settings
-  - **Estimated**: 3-4 hours
+- [x] **Configuration file support** ✅ COMPLETE
+  - [x] `~/.config/stash/config` (XDG) and `~/.stashrc` support
+  - [x] Default options: dir, target, source, verbose, no-folding
+  - [x] Default ignore, defer, override patterns
+  - [x] CLI options override config file values
+  - **Result**: Config file loaded automatically, CLI takes precedence
 
 - [ ] **Hooks system**
   - Pre-stash hooks
@@ -343,14 +348,14 @@
 
 ## Success Metrics
 
-### Version 0.2.0 Goals (Current Release)
-- [x] 100% test coverage of existing features
-- [x] Zero known bugs
-- [x] All core features tested and documented
-- [x] `--adopt` flag implemented and tested
-- [x] Man page complete
-- [x] `--ignore=REGEX` implemented
-- [x] `--defer` and `--override` implemented
+### Version 0.3.0 Goals (Current Release)
+- [x] Configuration file support (~/.stashrc, ~/.config/stash/config)
+- [x] Shell completion (bash/zsh/fish)
+- [x] --conflicts flag (list conflicts without action)
+- [x] Interactive mode (prompt for conflicts, show diffs)
+- [x] Better progress indicators
+- [x] Expanded automated test suite (unit + integration)
+- [x] All 0.2.0 features retained and tested
 
 ### Version 1.0.0 Goals
 - [ ] Feature parity with GNU Stow (all essential features)
@@ -365,20 +370,19 @@
 Want to help? Pick an item from Priority 1 or 2 and submit a PR!
 
 **Good First Issues**:
+- Add more integration tests
 - Improve error messages
-- Add shell completion scripts
 - Expand README examples
-- Test ignore patterns
 
 **Medium Difficulty**:
-- Implement `--ignore=REGEX`
-- Create man page
-- Add automated tests
+- Add CI/CD integration (GitHub Actions)
+- Create info manual (Texinfo)
+- Performance optimization
 
 **Advanced**:
-- Implement `--adopt` flag
 - Add hooks system
-- Performance optimization
+- Implement backup mode
+- Undo/Redo functionality
 
 ---
 

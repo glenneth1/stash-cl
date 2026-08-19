@@ -32,6 +32,11 @@
 - **Deploy Mode**: Install all packages at once
 - **Import Mode**: Create packages from existing files with automatic symlink creation
 - **List Mode**: Show all packages and their stashing status
+- **Configuration File**: Set defaults in ~/.config/stash/config or ~/.stashrc
+- **Shell Completion**: Built-in bash, zsh, and fish completion
+- **Conflict Checking**: List conflicts without taking action with --conflicts
+- **Interactive Mode**: Prompt on conflicts with diff display with --interactive
+- **Progress Indicators**: Progress tracking during operations
 
 ### Why Stash-CL?
 
@@ -298,6 +303,41 @@ packages.
 ```bash
 stash --adopt vim                     # Adopt existing vim files
 stash -n --adopt vim                  # Simulate adoption first
+stash --adopt -I vim                  # Interactive adoption (prompt per file)
+```
+
+#### Conflicts (Check Without Action)
+
+```bash
+stash --conflicts [OPTIONS] PACKAGE [PACKAGE...]
+```
+
+List all conflicts that would occur when stashing the specified packages
+without actually performing any action. Useful for checking before stashing.
+
+**Examples:**
+```bash
+stash --conflicts vim                 # Check conflicts for vim
+stash --conflicts emacs bash          # Check conflicts for multiple packages
+stash --dir ~/dotfiles --target ~ --conflicts vim  # With explicit paths
+```
+
+#### Interactive Mode
+
+```bash
+stash -I [OPTIONS] PACKAGE [PACKAGE...]
+stash --interactive [OPTIONS] PACKAGE [PACKAGE...]
+```
+
+Interactive mode prompts the user when conflicts are detected, offering
+options to skip, simulate, or abort. When used with --adopt, prompts for
+each file with options to adopt, skip, or abort, and shows diffs before
+adopting.
+
+**Examples:**
+```bash
+stash -I vim                          # Interactive stashing
+stash --interactive --adopt vim       # Interactive adoption with diffs
 ```
 
 #### Version
@@ -328,6 +368,8 @@ stash --dir /opt/packages --target /usr/local myapp
 - `-n, --simulate` - Simulation mode (dry-run, no changes made)
 - `--no-folding` - Disable tree folding (create individual file symlinks)
 - `--adopt` - Adopt existing files into package
+- `--conflicts` - List conflicts without taking action
+- `-I, --interactive` - Interactive mode (prompt on conflicts, show diffs)
 
 **Examples:**
 ```bash
@@ -335,6 +377,9 @@ stash -n vim                    # Preview what would happen
 stash --simulate vim bash       # Simulate multiple packages
 stash --no-folding vim          # Force individual file symlinks
 stash --adopt vim               # Adopt existing files
+stash --conflicts vim           # Check for conflicts
+stash -I vim                    # Interactive stashing
+stash --adopt -I vim            # Interactive adoption with diffs
 ```
 
 #### Pattern Options
@@ -368,6 +413,66 @@ stash -vvv vim                  # Show debug info
 
 - `-h, --help` - Show help message
 - `-V, --version` - Show version information
+- `--completion=SHELL` - Output shell completion script (bash, zsh, or fish)
+
+**Examples:**
+```bash
+stash --help                    # Show help
+stash --version                 # Show version
+stash --completion=bash         # Output bash completion script
+stash --completion=zsh          # Output zsh completion script
+stash --completion=fish         # Output fish completion script
+```
+
+To install shell completion permanently, add to your shell config:
+```bash
+# Bash (~/.bashrc)
+eval "$(stash --completion=bash)"
+
+# Zsh (~/.zshrc)
+eval "$(stash --completion=zsh)"
+
+# Fish (~/.config/fish/config.fish)
+eval "$(stash --completion=fish)"
+```
+
+---
+
+## Configuration File
+
+Stash-CL automatically reads configuration from the first existing file in this order:
+
+1. `$XDG_CONFIG_HOME/stash/config` (default: `~/.config/stash/config`)
+2. `~/.stashrc`
+
+### Config File Format
+
+The config file uses simple `key = value` lines. Lines starting with `#` are
+comments. Supported keys:
+
+- `dir` = PATH - Default stash directory
+- `target` = PATH - Default target directory
+- `source` = PATH - Default source directory
+- `verbose` = N - Default verbosity level (0-3)
+- `no-folding` = true|false - Disable tree folding by default
+- `ignore` = REGEX - Default ignore pattern (can be repeated)
+- `defer` = REGEX - Default defer pattern (can be repeated)
+- `override` = REGEX - Default override pattern (can be repeated)
+
+Command-line options always override config file values.
+
+### Example Config
+
+```bash
+# ~/.config/stash/config
+dir = ~/dotfiles
+target = ~
+verbose = 1
+ignore = .*\.bak
+ignore = .*~
+```
+
+With this config, you can run `stash vim` without specifying `--dir` or `--target`.
 
 ---
 
@@ -798,6 +903,11 @@ ls -la ~/.vim/
 | List Mode | No | Yes (`-l, --list`) |
 | Import Mode | No | Yes (`-i, --import`) |
 | Adopt Mode | Yes | Yes (`--adopt`) |
+| Configuration File | No | Yes (`~/.config/stash/config` or `~/.stashrc`) |
+| Shell Completion | No | Yes (bash, zsh, fish) |
+| Conflict Checking | No | Yes (`--conflicts`) |
+| Interactive Mode | No | Yes (`-I, --interactive`) |
+| Progress Indicators | No | Yes |
 | Performance | Perl | Compiled Lisp |
 
 ---

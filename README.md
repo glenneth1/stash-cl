@@ -17,6 +17,14 @@ A GNU Stow replacement written in Common Lisp with enhanced tree folding and int
 - ✅ **Folding Statistics** - Detailed reports of operations
 - ✅ **Colored Output** - Clear, actionable error messages
 
+### New in v0.3.0
+- ✅ **Configuration File** - Set defaults in ~/.config/stash/config or ~/.stashrc
+- ✅ **Shell Completion** - Built-in bash, zsh, and fish completion via --completion=SHELL
+- ✅ **Conflicts Flag** - List all conflicts without taking action with --conflicts
+- ✅ **Interactive Mode** - Prompt on conflicts with diff display with --interactive/-I
+- ✅ **Progress Indicators** - Progress tracking with [N/Total] percentage display
+- ✅ **Expanded Test Suite** - Unit tests (26 tests) + integration tests (50 assertions)
+
 ### Enhancements Over GNU Stow
 - **Smart Partial Folding** - Keeps subdirectories folded when possible
 - **Automatic Refolding** - Refolds after unstash automatically
@@ -133,6 +141,48 @@ echo "temp/*" > ~/.dotfiles/vim/.stash-local-ignore
 stash vim
 ```
 
+#### Checking for Conflicts
+```bash
+# Check what would conflict before stashing
+stash --conflicts vim
+stash --conflicts emacs bash
+
+# Interactive mode: prompt on conflicts
+stash -I vim
+
+# Interactive adoption: review each file before adopting
+stash --adopt -I vim
+```
+
+#### Shell Completion
+```bash
+# Bash
+eval "$(stash --completion=bash)"
+
+# Zsh
+eval "$(stash --completion=zsh)"
+
+# Fish
+eval "$(stash --completion=fish)"
+```
+
+Add the appropriate line to your shell config file (~/.bashrc, ~/.zshrc, or ~/.config/fish/config.fish) for permanent completion.
+
+#### Configuration File
+```bash
+# Create ~/.config/stash/config or ~/.stashrc
+cat > ~/.config/stash/config << 'EOF'
+dir = ~/dotfiles
+target = ~
+verbose = 1
+ignore = .*\.bak
+EOF
+
+# Now you can just run:
+stash vim          # Uses dir and target from config
+stash --conflicts vim  # Check conflicts with config defaults
+```
+
 #### Verbose Output and Debugging
 ```bash
 # Show what's being folded
@@ -164,9 +214,19 @@ stash -n --adopt --ignore='test-*' mypackage
 ## Testing
 
 ```bash
-# Run the integration test suite
-./test-cli-integration.sh
+# Run all tests (unit + integration)
+make test
+
+# Run unit tests only
+make test-unit
+
+# Run integration tests only
+make test-integration
 ```
+
+The test suite includes:
+- **Unit tests** (test-unit.lisp): 26 tests covering config parsing, path utilities, file operations, and task planner
+- **Integration tests** (test-integration.sh): 50 assertions covering CLI features including stash, unstash, deploy, list, conflicts, config files, shell completion, ignore patterns, import, and more
 
 ## Project Structure
 
@@ -190,7 +250,9 @@ stash-cl/
 ├── stash-cl.asd            - ASDF system definition
 ├── build.lisp              - Build script
 ├── Makefile                - Build automation
-├── test-cli-integration.sh - Integration tests
+├── test-unit.lisp          - Unit tests
+├── test-integration.sh     - Integration tests
+├── test-cli-integration.sh - Basic CLI tests
 └── README.md               - This file
 ```
 
@@ -247,7 +309,7 @@ stash -n <package>
 ## FAQ
 
 **Q: How is stash-cl different from GNU Stow?**  
-A: stash-cl provides enhanced tree folding, automatic refolding, file adoption, CLI ignore patterns, defer/override patterns, import mode, list mode, deploy mode, colored error messages, and a smaller footprint (16MB standalone vs Perl + dependencies).
+A: stash-cl provides enhanced tree folding, automatic refolding, file adoption, CLI ignore patterns, defer/override patterns, import mode, list mode, deploy mode, configuration file support, shell completion, conflict checking, interactive mode, colored error messages, and a smaller footprint (16MB standalone vs Perl + dependencies).
 
 **Q: Can I use stash-cl as a drop-in replacement for GNU Stow?**  
 A: Yes! stash-cl supports all core GNU Stow operations. The main difference is improved folding behavior and additional features.
@@ -283,6 +345,11 @@ A: Yes! Use `-n` (simulation mode) to see what would happen before making change
 | Colored error messages | ❌ | ✅ |
 | Task validation | ❌ | ✅ |
 | Restash operation | ❌ | ✅ Single command |
+| Configuration file | ❌ | ✅ ~/.config/stash/config or ~/.stashrc |
+| Shell completion | ❌ | ✅ bash, zsh, fish |
+| Conflict checking | ❌ | ✅ --conflicts flag |
+| Interactive mode | ❌ | ✅ --interactive with diffs |
+| Progress indicators | ❌ | ✅ |
 | Executable size | ~5MB + Perl | 16MB standalone |
 | Dependencies | Perl | None (standalone binary) |
 | Man page | ✅ | ✅ |
